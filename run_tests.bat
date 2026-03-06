@@ -10,21 +10,22 @@ if not exist reports (
 )
 
 set REPORT_PATH=./reports/report.html
+set AUTOMATION_DIR=automation_test
 
-REM Run all tests
+REM Run all automation tests
 if "%1"=="" (
-    pytest -s -v --html=%REPORT_PATH% --self-contained-html
+    pytest %AUTOMATION_DIR% -s -v --html=%REPORT_PATH% --self-contained-html
     goto :end
 )
 
 set TEST_FILE=%1
 
 if "%2"=="lf" (
-    pytest -s -v %TEST_FILE% --lf --last-failed-no-failures=all --html=%REPORT_PATH% --self-contained-html
+    pytest %AUTOMATION_DIR%/%TEST_FILE% -s -v --lf --last-failed-no-failures=all --html=%REPORT_PATH% --self-contained-html
     goto :end
 )
 
-pytest -s -v %TEST_FILE% --html=%REPORT_PATH% --self-contained-html
+pytest %AUTOMATION_DIR%/%TEST_FILE% -s -v --html=%REPORT_PATH% --self-contained-html
 
 :end
 endlocal

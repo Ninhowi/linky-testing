@@ -1,18 +1,58 @@
 import time
+import openpyxl
+import pytest as pytest
 from selenium.webdriver.support.ui import WebDriverWait
 
 from utils.chrome_driver import custom_chrome_driver
 from utils.configure import getAutoRemoveContent, getAutoRemoveContentPosition, isEnableHeadless
 from core.signup_flow import run_signup_flow
 
+min_row = 2
+max_row = 35
+
 enable_headless = isEnableHeadless()
+
 auto_remove_content = getAutoRemoveContent()
 auto_remove_content_position = getAutoRemoveContentPosition()
 
 
-def test_submit_sign_up_form(first_name, last_name, email, password, otp, message):
+def read_test_data_from_excel(excel_file):
+    print(f"[DATA] Loading signup test data from: {excel_file}")
+
+    workbook = openpyxl.load_workbook(excel_file)
+    sheet = workbook.active
+    test_data = []
+
+    for idx, row in enumerate(
+        sheet.iter_rows(min_row=min_row, max_row=max_row, values_only=True),
+        start=min_row
+    ):
+        first_name, last_name, email, password, otp, message = row
+
+        test_data.append(
+            pytest.param(
+                idx,
+                first_name,
+                last_name,
+                email,
+                password,
+                otp,
+                message,
+                id=f"row-{idx}"
+            )
+        )
+
+    print(f"[DATA] Loaded {len(test_data)} signup test cases")
+    return test_data
+
+
+test_data = read_test_data_from_excel('testdata/data_test_signup.xlsx')
+
+
+@pytest.mark.parametrize("row_index, first_name, last_name, email, password, otp, message", test_data)
+def test_submit_sign_up_form(row_index, first_name, last_name, email, password, otp, message):
     print("\n" + "=" * 100)
-    print(f"[TEST CASE START - SIGN UP]")
+    print(f"[TEST CASE START - SIGN UP] Row Index: {row_index}")
     print(f"[INPUT DATA] first_name={first_name}, last_name={last_name}, email={email}, password={password}, otp={otp}, expected_message={message}")
     print("=" * 100)
 
@@ -46,13 +86,3 @@ def test_submit_sign_up_form(first_name, last_name, email, password, otp, messag
         time.sleep(1)
         driver.quit()
         print("[TEST CASE FINISHED - SIGN UP]")
-
-
-input_first_name = input("Enter first name: ")
-input_last_name = input("Enter last name: ")
-input_email = input("Enter email: ")
-input_password = input("Enter password: ")
-input_otp = input("Enter OTP (if applicable, otherwise leave blank): ")
-input_message = input("Enter expected message (if applicable, otherwise leave blank): ")
-
-test_submit_sign_up_form(input_first_name, input_last_name, input_email, input_password, input_otp, input_message)

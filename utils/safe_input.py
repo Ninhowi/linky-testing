@@ -1,3 +1,4 @@
+"""Set input value in a React-friendly way (clear + send_keys or native setter + events)."""
 def safe_input(driver, element, text):
     if text is None:
         text = ""

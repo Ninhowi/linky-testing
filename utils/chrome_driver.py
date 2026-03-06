@@ -1,3 +1,4 @@
+"""Chrome WebDriver setup (managed via webdriver-manager)."""
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options

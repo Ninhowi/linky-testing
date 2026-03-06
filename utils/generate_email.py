@@ -1,3 +1,4 @@
+"""Generate unique email for sign-up tests (e.g. +clerk_test with timestamp)."""
 import time
 from typing import Literal
 

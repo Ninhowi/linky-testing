@@ -1,4 +1,5 @@
 import time
+from pathlib import Path
 import openpyxl
 import pytest as pytest
 from selenium.webdriver.support.ui import WebDriverWait
@@ -6,6 +7,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from utils.chrome_driver import custom_chrome_driver
 from utils.configure import getAutoRemoveContent, getAutoRemoveContentPosition, isEnableHeadless
 from core.signup_flow import run_signup_flow
+
+# Root testdata (shared with POM)
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+TESTDATA_DIR = _PROJECT_ROOT / "testdata"
 
 min_row = 2
 max_row = 35
@@ -46,7 +51,7 @@ def read_test_data_from_excel(excel_file):
     return test_data
 
 
-test_data = read_test_data_from_excel('testdata/data_test_signup.xlsx')
+test_data = read_test_data_from_excel(TESTDATA_DIR / "data_test_signup.xlsx")
 
 
 @pytest.mark.parametrize("row_index, first_name, last_name, email, password, otp, message", test_data)

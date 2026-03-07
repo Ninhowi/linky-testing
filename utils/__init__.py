@@ -1,1 +1,1 @@
-# Shared helpers for automation and manual tests (driver, config, email, input)
+# Shared helpers for POM tests (driver, config, email, input)

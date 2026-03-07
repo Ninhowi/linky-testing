@@ -4,7 +4,6 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
 
-
 def custom_chrome_driver(enable_headless=False):
     options = Options()
     if enable_headless:
@@ -14,4 +13,5 @@ def custom_chrome_driver(enable_headless=False):
 
     service = ChromeService(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
+    
     return driver

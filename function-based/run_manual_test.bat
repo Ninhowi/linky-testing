@@ -1,11 +1,9 @@
 @echo off
 setlocal
+cd /d "%~dp0"
+call ..\.venv\Scripts\activate.bat
 
-REM Activate virtual environment
-call .venv\Scripts\activate.bat
-
-set SCRIPT=%1
-
+set SCRIPT=%~1
 if "%SCRIPT%"=="signup" set SCRIPT=signup_manual_test
 if "%SCRIPT%"=="login" set SCRIPT=login_manual_test
 

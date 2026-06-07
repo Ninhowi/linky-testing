@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "linky-testing-final"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+  "allure-pytest>=2.16.0",
+  "cloakbrowser>=0.3.30",
+  "openpyxl>=3.1.5",
+  "pytest>=9.0.3",
+  "pytest-html>=4.2.0",
+  "pytest-xdist>=3.8.0",
+  "python-dotenv>=1.2.2",
+  "requests>=2.34.2",
+  "selenium>=4.44.0",
+  "tenacity>=9.1.4",
+]
+
+[project.scripts]
+ensure-cloak = "helpers.ensure_cloak:main"
+test = "helpers.run_test:main"
+allure-report = "helpers.run_allure:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["helpers", "pages"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "sign_in: sign-in auth flow tests",
+  "sign_up: sign-up auth flow tests",
+  "reset_password: reset-password auth flow tests",
+]

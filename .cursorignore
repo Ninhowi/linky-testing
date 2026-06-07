@@ -1,0 +1,4 @@
+.venv/
+allure-results/
+__pycache__/
+.git/

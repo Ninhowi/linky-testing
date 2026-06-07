@@ -42,6 +42,15 @@ Or set `HEADED=1` in `.env`.
 
 ## Allure reports
 
+On Windows, install the Allure CLI from an elevated PowerShell at the project root:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+.\scripts\install-allure.ps1
+```
+
+Then run tests and open reports:
+
 ```bash
 uv run test tests/                  # produces allure-results/
 uv run allure-report serve          # live report (default)

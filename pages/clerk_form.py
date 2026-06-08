@@ -46,6 +46,26 @@ element.dispatchEvent(new Event('input', { bubbles: true }));
 element.dispatchEvent(new Event('change', { bubbles: true }));
 """
 
+_UI_SETTLE_SEC = 0.4
+
+
+def password_needs_js_fill(password: str) -> bool:
+    """Use the React-compatible setter when ChromeDriver cannot type the password."""
+    return any(ord(ch) > 0xFFFF for ch in password)
+
+
+def fill_password_input(
+    driver: WebDriver,
+    inp: WebElement,
+    password: str,
+) -> None:
+    inp.clear()
+    if password_needs_js_fill(password):
+        driver.execute_script(_SET_INPUT_VALUE_JS, inp, password)
+    else:
+        inp.send_keys(password)
+    time.sleep(_UI_SETTLE_SEC)
+
 
 def _email_local_part(email: str) -> str:
     return email.split("@", 1)[0]
@@ -132,9 +152,7 @@ class PasswordStep(ClerkFormPage):
         )
 
     def fill_password(self, password: str) -> None:
-        inp = self.password_input()
-        inp.clear()
-        inp.send_keys(password)
+        fill_password_input(self._driver, self.password_input(), password)
 
     def wait_until_visible(self, timeout: float | None = None) -> None:
         wait_visible(self._driver, ("css selector", _PASSWORD_INPUT_SCOPED_CSS), timeout)

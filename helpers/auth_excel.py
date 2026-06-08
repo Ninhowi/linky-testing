@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import secrets
 import string
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Protocol
@@ -22,6 +23,9 @@ DATA_XLSX = ROOT / "test_data" / "data.xlsx"
 
 _CLERK_TEST_EMAIL = re.compile(r"^(?P<name>.+?)\+clerk_test(?:@(?P<domain>.+))?$")
 _RANDOM_SUFFIX_ALPHABET = string.ascii_lowercase + string.digits
+
+PASSWORD_VALIDATION_TRANSITION_SEC = 2.0
+_PASSWORD_TRANSITION_POLL_SEC = 0.1
 
 
 class AuthPage(Protocol):
@@ -294,6 +298,39 @@ def sign_up_steps(case: TestRow) -> dict[str, bool]:
     }
 
 
+def auth_case_involves_password_form(case: TestRow) -> bool:
+    """Return whether the case expects a password-field validation message."""
+    if "password" in message_lower(case):
+        return True
+    for key in ("password", "new_password", "confirm_password"):
+        if password_text(case.get(key)) or cell_value(case.get(key)):
+            return True
+    return False
+
+
+def wait_password_validation_transition(
+    driver: WebDriver,
+    page: Any,
+    case: TestRow,
+    *,
+    field_for_assertion: Callable[[Any, TestRow], WebElement],
+    messages: list[str],
+) -> None:
+    """Wait for Clerk password validation text to finish animating in."""
+    if not auth_case_involves_password_form(case):
+        return
+
+    from helpers.validation import _auth_message_visible
+
+    resolve_field = lambda: field_for_assertion(page, case)
+    deadline = time.monotonic() + PASSWORD_VALIDATION_TRANSITION_SEC
+    while time.monotonic() < deadline:
+        for message in messages:
+            if _auth_message_visible(driver, resolve_field, message):
+                return
+        time.sleep(_PASSWORD_TRANSITION_POLL_SEC)
+
+
 def assert_auth_outcome(
     page: AuthPage,
     driver: WebDriver,
@@ -308,6 +345,13 @@ def assert_auth_outcome(
     expected_messages = [msg for msg in expected_messages if msg]
 
     if expected_messages:
+        wait_password_validation_transition(
+            driver,
+            page,
+            case,
+            field_for_assertion=field_for_assertion,
+            messages=expected_messages,
+        )
         resolve_field = lambda: field_for_assertion(page, case)
         errors: list[str] = []
         for message in expected_messages:

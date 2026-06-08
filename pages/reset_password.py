@@ -11,7 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from helpers.locators import by_role, first_visible_css, scoped_css
 from helpers.waits import DEFAULT_TIMEOUT_SEC, wait_hidden
-from pages.clerk_form import ClerkFormPage, _SET_INPUT_VALUE_JS
+from pages.clerk_form import ClerkFormPage, fill_password_input
 from pages.sign_in import SignInPage
 
 _CLERK_SCOPE = '[data-clerk-ready="true"] '
@@ -63,11 +63,7 @@ class ResetPasswordFormStep(ClerkFormPage):
         )
 
     def _fill_input(self, inp: WebElement, value: str) -> None:
-        inp.clear()
-        if any(ord(ch) > 0xFFFF for ch in value):
-            self._driver.execute_script(_SET_INPUT_VALUE_JS, inp, value)
-            return
-        inp.send_keys(value)
+        fill_password_input(self._driver, inp, value)
 
     def fill_new_password(self, password: str) -> None:
         self._fill_input(self.new_password_input(), password)

@@ -71,15 +71,6 @@ for (const el of scope.querySelectorAll('input, textarea')) {
 return null;
 """
 
-_READ_VALIDATION_JS = """
-const el = arguments[0];
-const report = arguments[1];
-if (report) {
-    el.reportValidity();
-}
-return [!el.checkValidity(), el.validationMessage || ''];
-"""
-
 
 def _normalize_message(text: str) -> str:
     return text.lower().replace("procced", "proceed").strip()
@@ -106,23 +97,6 @@ def _clerk_field_error_visible(driver: WebDriver, message: str) -> bool:
     return False
 
 
-def _clerk_field_error_matches(
-    driver: WebDriver,
-    message: str,
-    *,
-    timeout: float = 5,
-) -> bool:
-    """Wait for a visible Clerk field error containing ``message``."""
-
-    def _found(driver: WebDriver) -> bool:
-        return _clerk_field_error_visible(driver, message)
-
-    try:
-        return WebDriverWait(driver, timeout).until(_found)
-    except TimeoutException:
-        return False
-
-
 def _text_on_screen_visible(
     driver: WebDriver,
     message: str,
@@ -145,29 +119,6 @@ def _resolve_input(element: InputRef) -> WebElement | None:
         return None
 
 
-def read_input_validation(
-    driver: WebDriver,
-    element: WebElement,
-    *,
-    report: bool = True,
-) -> tuple[bool, str]:
-    """Return ``(is_invalid, validation_message)`` in one browser round-trip."""
-    invalid, message = driver.execute_script(
-        _READ_VALIDATION_JS,
-        element,
-        report,
-    )
-    return bool(invalid), str(message or "").strip()
-
-
-def input_is_invalid(driver: WebDriver, element: WebElement) -> bool:
-    return read_input_validation(driver, element)[0]
-
-
-def input_validation_message(driver: WebDriver, element: WebElement) -> str:
-    return read_input_validation(driver, element)[1]
-
-
 def _validation_message_matches(
     driver: WebDriver,
     element: WebElement,
@@ -176,17 +127,6 @@ def _validation_message_matches(
     """Return True when ``message`` matches any relevant ``validationMessage``."""
     matched = driver.execute_script(_MATCH_VALIDATION_JS, element, message)
     return matched is not None
-
-
-def assert_input_validation_message(
-    driver: WebDriver,
-    element: WebElement,
-    message: str,
-) -> None:
-    """Assert ``message`` appears in HTML5 ``validationMessage``."""
-    assert _validation_message_matches(driver, element, message), (
-        f"Expected {message!r} from checkValidity/validationMessage"
-    )
 
 
 def _auth_message_visible(

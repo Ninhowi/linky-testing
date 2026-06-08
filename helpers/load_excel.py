@@ -57,22 +57,6 @@ def load_sheet(worksheet: Worksheet | str | Path, sheet: str | None = None) -> S
     return _rows_from_worksheet(worksheet)
 
 
-def load_excel_flat(
-    path: str | Path,
-    *,
-    data_only: bool = True,
-    include_sheet: bool = True,
-) -> SheetRows:
-    """Load all sheets and concatenate rows (optional ``_sheet`` column per row)."""
-    rows: SheetRows = []
-    for sheet_name, sheet_rows in load_excel(path, data_only=data_only).items():
-        for row in sheet_rows:
-            if include_sheet:
-                row = {**row, "_sheet": sheet_name}
-            rows.append(row)
-    return rows
-
-
 def _rows_from_worksheet(ws: Worksheet) -> SheetRows:
     row_iter = ws.iter_rows(values_only=True)
     try:

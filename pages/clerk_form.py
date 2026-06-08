@@ -5,19 +5,11 @@ from __future__ import annotations
 import re
 import time
 
-from collections.abc import Callable
-
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 
-from helpers.locators import (
-    assert_text_on_screen,
-    by_role,
-    first_visible_css,
-    scoped_css,
-)
-from helpers.validation import InputRef, assert_input_and_screen_message
+from helpers.locators import by_role, first_visible_css, scoped_css
 from helpers.waits import DEFAULT_TIMEOUT_SEC, wait_for_clerk_ready, wait_hidden, wait_visible
 
 _CLERK_SCOPE = '[data-clerk-ready="true"] '
@@ -50,6 +42,20 @@ def _email_local_part(email: str) -> str:
     return email.split("@", 1)[0]
 
 
+def _clerk_input(
+    driver: WebDriver,
+    scoped_css: str,
+    fields: str,
+    *,
+    role: str,
+    name: str | re.Pattern[str],
+) -> WebElement:
+    el = first_visible_css(driver, scoped_css, fields)
+    if el is not None:
+        return el
+    return by_role(driver, role, name=name)
+
+
 class ClerkFormPage:
     """Base page object for Clerk forms with shared assertions and actions."""
 
@@ -59,57 +65,14 @@ class ClerkFormPage:
     def continue_button(self) -> WebElement:
         return by_role(self._driver, "button", name=_CONTINUE)
 
-    def assert_screen_contains(
-        self,
-        text: str,
-        *,
-        exact: bool = False,
-        timeout: float = 10,
-    ) -> WebElement:
-        """Assert that ``text`` is visible anywhere on screen."""
-        return assert_text_on_screen(
-            self._driver,
-            text,
-            exact=exact,
-            timeout=timeout,
-        )
-
-    def assert_error_message(
-        self,
-        text: str,
-        *,
-        exact: bool = False,
-        timeout: float = 10,
-    ) -> WebElement:
-        """Assert the screen shows an error containing ``text``."""
-        return self.assert_screen_contains(text, exact=exact, timeout=timeout)
-
-    def assert_input_and_screen_message(
-        self,
-        input_el: InputRef,
-        text: str,
-        *,
-        exact: bool = False,
-        timeout: float = 10,
-    ) -> None:
-        """Assert HTML5 ``validationMessage`` and/or visible screen contain ``text``."""
-        assert_input_and_screen_message(
-            self._driver,
-            input_el,
-            text,
-            exact=exact,
-            timeout=timeout,
-        )
-
 
 class IdentifierStep(ClerkFormPage):
     def email_input(self) -> WebElement:
-        el = first_visible_css(self._driver, _EMAIL_INPUT_SCOPED_CSS, _EMAIL_FIELDS)
-        if el is not None:
-            return el
-        return by_role(
+        return _clerk_input(
             self._driver,
-            "textbox",
+            _EMAIL_INPUT_SCOPED_CSS,
+            _EMAIL_FIELDS,
+            role="textbox",
             name=re.compile(r"identifier|emailAddress|email address", re.I),
         )
 
@@ -151,10 +114,13 @@ class PasswordStep(ClerkFormPage):
         self.forgot_password_link().click()
 
     def password_input(self) -> WebElement:
-        el = first_visible_css(self._driver, _PASSWORD_INPUT_SCOPED_CSS, _PASSWORD_FIELDS)
-        if el is not None:
-            return el
-        return by_role(self._driver, "textbox", name=re.compile(r"password", re.I))
+        return _clerk_input(
+            self._driver,
+            _PASSWORD_INPUT_SCOPED_CSS,
+            _PASSWORD_FIELDS,
+            role="textbox",
+            name=re.compile(r"password", re.I),
+        )
 
     def fill_password(self, password: str) -> None:
         inp = self.password_input()
@@ -170,10 +136,13 @@ class PasswordStep(ClerkFormPage):
 
 class LegalStep(ClerkFormPage):
     def legal_input(self) -> WebElement:
-        el = first_visible_css(self._driver, _LEGAL_INPUT_SCOPED_CSS, _LEGAL_FIELDS)
-        if el is not None:
-            return el
-        return by_role(self._driver, "checkbox", name=re.compile(r"legalAccepted", re.I))
+        return _clerk_input(
+            self._driver,
+            _LEGAL_INPUT_SCOPED_CSS,
+            _LEGAL_FIELDS,
+            role="checkbox",
+            name=re.compile(r"legalAccepted", re.I),
+        )
 
     def accept_legal(self) -> None:
         self.legal_input().click()

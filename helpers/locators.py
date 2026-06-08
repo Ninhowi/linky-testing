@@ -11,12 +11,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 import re
 from typing import Pattern
 
-def by_test_id(test_id: str) -> tuple[str, str]:
-    return (By.CSS_SELECTOR, f'[data-testid="{test_id}"]')
-
-def find_by_test_id(driver: WebDriver, test_id: str) -> WebElement:
-    return driver.find_element(*by_test_id(test_id))
-
 _INPUT_ATTRS = ("aria-label", "name", "id", "placeholder", "autocomplete")
 
 def _input_label_text(el: WebElement) -> str:
@@ -103,12 +97,6 @@ def first_visible_css(driver: WebDriver, *selector_groups: str) -> WebElement | 
                 return el
     return None
 
-def find_optional(driver: WebDriver, by: tuple[str, str], timeout: float = 0) -> WebElement | None:
-    try:
-        return driver.find_element(*by)
-    except Exception:
-        return None
-
 def _xpath_literal(text: str) -> str:
     if "'" not in text:
         return f"'{text}'"
@@ -149,15 +137,3 @@ def assert_text_on_screen(
 ) -> WebElement:
     """Assert that ``text`` is visible on screen."""
     return wait_for_text(driver, text, exact=exact, timeout=timeout)
-
-
-def assert_text_not_on_screen(
-    driver: WebDriver,
-    text: str,
-    *,
-    exact: bool = False,
-    timeout: float = 0,
-) -> None:
-    """Assert that ``text`` is not visible on screen."""
-    locator = (By.XPATH, text_xpath(text, exact=exact))
-    WebDriverWait(driver, timeout).until(EC.invisibility_of_element_located(locator))

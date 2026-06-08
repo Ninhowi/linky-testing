@@ -32,9 +32,18 @@ _CONTINUE = re.compile(r"continue", re.I)
 _FORGOT_PASSWORD = re.compile(r"forgot password", re.I)
 
 _SET_INPUT_VALUE_JS = """
-arguments[0].value = arguments[1];
-arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
-arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+const element = arguments[0];
+const value = arguments[1];
+const prototype = Object.getPrototypeOf(element);
+const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
+const setter = descriptor && descriptor.set;
+if (setter) {
+    setter.call(element, value);
+} else {
+    element.value = value;
+}
+element.dispatchEvent(new Event('input', { bubbles: true }));
+element.dispatchEvent(new Event('change', { bubbles: true }));
 """
 
 

@@ -221,11 +221,10 @@ def reset_password_steps(case: TestRow) -> dict[str, bool]:
 
 def reset_password_should_submit(case: TestRow) -> bool:
     """Return whether to click Reset Password (``submit``: 1=yes, 0=no)."""
-    submit = excel_flag(case, "submit")
+    submit = excel_flag(case, "button")
     if submit is not None:
         return submit
-    lower = message_lower(case)
-    return "don't match" not in lower and "do not match" not in lower
+    return True
 
 
 def reset_password_assert_messages(case: TestRow) -> list[str]:

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 import pytest
 from selenium.webdriver.remote.webelement import WebElement
 
@@ -25,6 +27,8 @@ from pages.reset_password import ResetPasswordPage
 pytestmark = pytest.mark.reset_password
 
 RESET_PASSWORD_CASES = load_sheet_cases("reset_password")
+
+_VALIDATION_TRANSITION_SEC = 0.3
 
 
 def _run_sign_in_through_otp(page: ResetPasswordPage, case: TestRow) -> None:
@@ -61,6 +65,8 @@ def _run_reset_password_flow(page: ResetPasswordPage, case: TestRow) -> None:
         new_password = password_text(case.get("new_password"))
         confirm_password = password_text(case.get("confirm_password"))
         page.reset.fill_passwords(new_password, confirm_password)
+        if not reset_password_should_submit(case):
+            time.sleep(_VALIDATION_TRANSITION_SEC)
         sign_out = log_out_all_devices(case)
         if sign_out is not None:
             page.reset.set_sign_out_all_devices(sign_out)

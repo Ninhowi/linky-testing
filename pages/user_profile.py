@@ -6,11 +6,13 @@ import re
 import time
 
 from selenium.common.exceptions import (
+    ElementNotInteractableException,
     NoSuchElementException,
     StaleElementReferenceException,
     TimeoutException,
 )
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
@@ -29,6 +31,8 @@ _FIELD_ERROR_POLL_SEC = 0.05
 _UI_SETTLE_SEC = 0.3
 _FIELD_ERROR_SELECTOR = ".text-destructive"
 _CHAR_COUNTER_PATTERN = re.compile(r"^\d+/\d+$")
+_COMBOBOX_NOT_FOUND_PATTERN = re.compile(r"no .+ found\.?", re.I)
+_COMBOBOX_EMPTY_SELECTORS = ("[cmdk-empty]", "[data-slot='command-empty']")
 
 _ARIA_FIELDS: dict[str, str] = {
     "first_name": "First name",
@@ -38,10 +42,29 @@ _ARIA_FIELDS: dict[str, str] = {
 }
 
 _COMBOBOX_COLUMNS = frozenset({"country", "gender", "interest"})
+_COMBOBOX_SEARCH_HINTS: dict[str, tuple[str, ...]] = {
+    "country": ("search country", "country"),
+    "gender": ("search gender", "gender", "search"),
+    "interest": ("search", "tag"),
+}
 
 _SETTLE_FIELD_JS = """
 const element = arguments[0];
 element.dispatchEvent(new Event('blur', { bubbles: true }));
+element.dispatchEvent(new Event('change', { bubbles: true }));
+"""
+
+_CLEAR_INPUT_VALUE_JS = """
+const element = arguments[0];
+const prototype = Object.getPrototypeOf(element);
+const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
+const setter = descriptor && descriptor.set;
+if (setter) {
+    setter.call(element, '');
+} else {
+    element.value = '';
+}
+element.dispatchEvent(new Event('input', { bubbles: true }));
 element.dispatchEvent(new Event('change', { bubbles: true }));
 """
 
@@ -276,7 +299,77 @@ class ProfileSection:
                 return element
         raise TimeoutException(f"No cmdk search input for {placeholder_hint!r}")
 
-    def _click_listbox_option(self, value: str) -> None:
+    def _is_usable_search_input(self, element: WebElement) -> bool:
+        try:
+            if not element.is_displayed() or not element.is_enabled():
+                return False
+            if element.get_attribute("readonly") is not None:
+                return False
+            return element.tag_name.lower() == "input"
+        except StaleElementReferenceException:
+            return False
+
+    def _find_combobox_search(self, column: str) -> WebElement | None:
+        for hint in _COMBOBOX_SEARCH_HINTS.get(column, ("search",)):
+            try:
+                element = self._cmdk_search_input(placeholder_hint=hint)
+            except TimeoutException:
+                continue
+            if self._is_usable_search_input(element):
+                return element
+
+        for popover in self._driver.find_elements(
+            By.CSS_SELECTOR,
+            "[data-radix-popper-content-wrapper]",
+        ):
+            try:
+                if not popover.is_displayed():
+                    continue
+            except StaleElementReferenceException:
+                continue
+            for element in popover.find_elements(By.CSS_SELECTOR, "input[cmdk-input], input"):
+                if self._is_usable_search_input(element):
+                    return element
+        return None
+
+    def _close_combobox(self) -> None:
+        for selector in (
+            "[data-radix-popper-content-wrapper]",
+            "[cmdk-root]",
+            "[role='listbox']",
+        ):
+            popovers = [
+                element
+                for element in self._driver.find_elements(By.CSS_SELECTOR, selector)
+                if element.is_displayed()
+            ]
+            if not popovers:
+                continue
+            self._driver.execute_script(
+                "arguments[0].dispatchEvent(new MouseEvent('click', {bubbles: true}));",
+                self.root,
+            )
+            time.sleep(_UI_SETTLE_SEC)
+            return
+
+    def _fill_combobox(
+        self,
+        column: str,
+        value: str,
+        *,
+        not_found_messages: str | list[str] | None = None,
+    ) -> None:
+        _click(self._driver, self._combobox_trigger(column))
+        search = self._find_combobox_search(column)
+        if search is not None:
+            self._clear_input_value(search)
+            search.send_keys(value.strip())
+            time.sleep(_UI_SETTLE_SEC)
+        self._try_click_listbox_option(value)
+        self.assert_combobox_not_found_if_visible(not_found_messages)
+        self._close_combobox()
+
+    def _try_click_listbox_option(self, value: str) -> bool:
         value_lower = value.strip().lower()
         for selector in ("[role='option']", "[cmdk-item]"):
             for option in self._driver.find_elements(By.CSS_SELECTOR, selector):
@@ -288,15 +381,71 @@ class ProfileSection:
                 text = (option.text or option.get_attribute("textContent") or "").strip()
                 if text.lower() == value_lower or value_lower in text.lower():
                     _click(self._driver, option)
-                    return
+                    return True
+        return False
+
+    def visible_combobox_not_found_text(self) -> str | None:
+        """Return visible combobox empty-state text like ``No tags found.``."""
+        for selector in _COMBOBOX_EMPTY_SELECTORS:
+            for element in self._driver.find_elements(By.CSS_SELECTOR, selector):
+                try:
+                    if not element.is_displayed():
+                        continue
+                except StaleElementReferenceException:
+                    continue
+                text = (element.text or "").strip()
+                if text and _COMBOBOX_NOT_FOUND_PATTERN.search(text):
+                    return text
+
+        for element in self._driver.find_elements(By.CSS_SELECTOR, "p, span, div"):
+            try:
+                if not element.is_displayed():
+                    continue
+            except StaleElementReferenceException:
+                continue
+            text = (element.text or "").strip()
+            if text and len(text) < 80 and _COMBOBOX_NOT_FOUND_PATTERN.fullmatch(text):
+                return text
+        return None
+
+    def assert_combobox_not_found_if_visible(
+        self,
+        messages: str | list[str] | None = None,
+    ) -> None:
+        """Assert combobox empty-state text when the dropdown shows ``No … found.``."""
+        text = self.visible_combobox_not_found_text()
+        if text is None:
+            return
+
+        expected = [messages] if isinstance(messages, str) else [msg for msg in (messages or []) if msg]
+        if expected and not any(_messages_match(message, text) for message in expected):
+            raise AssertionError(
+                f"Combobox empty-state mismatch. Expected one of {expected!r}; got {text!r}"
+            )
 
     def _settle_field(self, field: WebElement) -> None:
         self._driver.execute_script(_SETTLE_FIELD_JS, field)
         time.sleep(_UI_SETTLE_SEC)
 
+    def _clear_input_value(self, field: WebElement) -> None:
+        self._driver.execute_script(
+            "arguments[0].focus(); arguments[0].select();",
+            field,
+        )
+        try:
+            field.clear()
+        except Exception:
+            pass
+        self._driver.execute_script(_CLEAR_INPUT_VALUE_JS, field)
+        try:
+            field.send_keys(Keys.CONTROL, "a", Keys.BACKSPACE)
+        except ElementNotInteractableException:
+            pass
+        self._settle_field(field)
+
     def _fill_input_value(self, field: WebElement, value: str) -> None:
+        self._clear_input_value(field)
         self._driver.execute_script("arguments[0].focus();", field)
-        field.clear()
         if (
             not value
             or len(value) > 100
@@ -309,17 +458,19 @@ class ProfileSection:
         self._settle_field(field)
 
     def _ensure_input_value(self, field: WebElement, value: str) -> None:
+        self._clear_input_value(field)
         self._fill_input_value(field, value)
         for attempt in range(3):
             actual = field.get_attribute("value") or ""
             if actual == value:
                 return
             if attempt == 1 and len(value) > 100:
-                field.clear()
+                self._clear_input_value(field)
                 for offset in range(0, len(value), 50):
                     field.send_keys(value[offset : offset + 50])
                 self._settle_field(field)
                 continue
+            self._clear_input_value(field)
             self._fill_input_value(field, value)
 
         actual = field.get_attribute("value") or ""
@@ -327,7 +478,13 @@ class ProfileSection:
             f"Could not set field value (expected len {len(value)}, got {len(actual)})"
         )
 
-    def fill_text(self, column: str, value: str) -> None:
+    def fill_text(
+        self,
+        column: str,
+        value: str,
+        *,
+        not_found_messages: str | list[str] | None = None,
+    ) -> None:
         if column in _ARIA_FIELDS:
             inp = self._aria_input(_ARIA_FIELDS[column])
             self._ensure_input_value(inp, value)
@@ -336,31 +493,11 @@ class ProfileSection:
         if column not in _COMBOBOX_COLUMNS:
             raise ValueError(f"Unsupported profile column {column!r}")
 
-        trigger = self._combobox_trigger(column)
-        _click(self._driver, trigger)
-
-        if column == "country":
-            search = self._cmdk_search_input(placeholder_hint="search country")
-            search.clear()
-            search.send_keys(value.strip())
-            time.sleep(_UI_SETTLE_SEC)
-            self._click_listbox_option(value)
-            return
-
-        if column == "gender":
-            self._click_listbox_option(value)
-            return
-
-        if column == "interest":
-            search = self._cmdk_search_input(placeholder_hint="search")
-            search.clear()
-            search.send_keys(value)
-            time.sleep(_UI_SETTLE_SEC)
-            try:
-                self._click_listbox_option(value)
-            except Exception:
-                pass
-            return
+        self._fill_combobox(
+            column,
+            value,
+            not_found_messages=not_found_messages,
+        )
 
 
 class UserProfilePage:
@@ -429,9 +566,12 @@ class UserProfilePage:
             if not buttons:
                 return True
             save_btn = buttons[0]
-            if _save_showing_done(save_btn):
-                return True
-            return _button_enabled(save_btn)
+            try:
+                if _save_showing_done(save_btn):
+                    return True
+                return _button_enabled(save_btn)
+            except StaleElementReferenceException:
+                return False
 
         WebDriverWait(self._driver, _SAVE_WAIT_TIMEOUT_SEC, poll_frequency=0.05).until(
             _save_finished
@@ -441,10 +581,20 @@ class UserProfilePage:
         self.click_save_section(name)
         self.wait_save_section(name)
 
-    def fill_fields(self, section_name: str, fields: list[tuple[str, str]]) -> None:
+    def fill_fields(
+        self,
+        section_name: str,
+        fields: list[tuple[str, str]],
+        *,
+        not_found_messages: str | list[str] | None = None,
+    ) -> None:
         section = self.section(section_name)
         for column, value in fields:
-            section.fill_text(column, value)
+            section.fill_text(
+                column,
+                value,
+                not_found_messages=not_found_messages,
+            )
 
     def assert_field_error(
         self,

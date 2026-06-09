@@ -10,6 +10,7 @@ from helpers.profile_excel import fields_to_fill, section_name
 from helpers.profile_validation import (
     assert_profile_field_error,
     assert_profile_outcome,
+    profile_combobox_not_found_messages,
     profile_expects_inline_field_error,
 )
 from pages.user_profile import UserProfilePage
@@ -22,7 +23,11 @@ PROFILE_CASES = load_sheet_cases("profile")
 def _run_profile_flow(page: UserProfilePage, case: TestRow) -> None:
     section = section_name(case)
     page.edit_section(section)
-    page.fill_fields(section, fields_to_fill(case, section))
+    page.fill_fields(
+        section,
+        fields_to_fill(case, section),
+        not_found_messages=profile_combobox_not_found_messages(case),
+    )
     page.click_save_section(section)
     if profile_expects_inline_field_error(case):
         assert_profile_field_error(page, case)

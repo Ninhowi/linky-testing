@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import re
+
 from helpers.auth_excel import cell_text
 from helpers.load_excel import TestRow
 from helpers.profile_excel import SECTION_FIELDS, fields_to_fill, section_name
 from pages.user_profile import UserProfilePage
+
+_COMBOBOX_COLUMNS = frozenset({"country", "gender", "interest"})
+_COMBOBOX_NOT_FOUND_MESSAGE = re.compile(r"no .+ found", re.I)
 
 _VALIDATION_HINTS = (
     "cannot",
@@ -19,6 +24,15 @@ _VALIDATION_HINTS = (
     "too long",
     "exceed",
 )
+
+
+def profile_combobox_not_found_messages(case: TestRow) -> list[str]:
+    """Messages for combobox empty states like ``No tags found.``."""
+    return [
+        message
+        for message in profile_assert_messages(case)
+        if _COMBOBOX_NOT_FOUND_MESSAGE.search(message)
+    ]
 
 
 def profile_assert_messages(case: TestRow) -> list[str]:
@@ -50,8 +64,9 @@ def profile_expects_inline_field_error(case: TestRow) -> bool:
     message = cell_text(case.get("message")).lower()
     if not profile_expects_field_error(case):
         return False
-    toast_only_phrases = ("no tags found", "unexpected token")
-    return not any(phrase in message for phrase in toast_only_phrases)
+    if _COMBOBOX_NOT_FOUND_MESSAGE.search(message):
+        return False
+    return "unexpected token" not in message
 
 
 def profile_field_for_message(case: TestRow) -> str | None:
@@ -70,8 +85,16 @@ def profile_field_for_message(case: TestRow) -> str | None:
         return "last_name"
     if "date" in message or "birth" in message:
         return "date"
+    if _COMBOBOX_NOT_FOUND_MESSAGE.search(message):
+        for column, _ in fields_to_fill(case, section):
+            if column in _COMBOBOX_COLUMNS:
+                return column
     if "tag" in message:
         return "interest"
+    if "country" in message:
+        return "country"
+    if "gender" in message:
+        return "gender"
     if "bio" in message or (section == "bio" and "300" in message):
         return "bio"
 

@@ -70,7 +70,7 @@ uv run allure-report open           # open generated report
 | `USER_PASSWORD` | Login password for profile tests |
 | `USER_OTP` | OTP code when the test account uses 2FA |
 
-Profile tests sign in **once per test run** (session fixture), save cookies and browser storage, then restore that auth state into the shared profile browser — no repeated Clerk login per test file.
+Profile tests sign in through the Clerk UI **before each test case** using `USER_EMAIL`, `USER_PASSWORD`, and optional `USER_OTP`.
 
 Variables are loaded from `.env` and optional `.env.e2e` at the project root. Existing process env vars are not overwritten.
 

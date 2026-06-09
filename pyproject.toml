@@ -32,4 +32,5 @@ markers = [
   "sign_in: sign-in auth flow tests",
   "sign_up: sign-up auth flow tests",
   "reset_password: reset-password auth flow tests",
+  "profile: user profile page tests (requires USER_EMAIL / USER_PASSWORD)",
 ]

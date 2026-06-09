@@ -1,6 +1,6 @@
 # Linky Auth E2E (pytest + Selenium + CloakBrowser)
 
-Standalone Python E2E suite for Linky **sign-up**, **sign-in**, and **reset-password** flows. Test cases are driven by Excel rows in `test_data/data.xlsx`.
+Standalone Python E2E suite for Linky **sign-up**, **sign-in**, **reset-password**, and **user profile** flows. Test cases are driven by Excel rows in `test_data/data.xlsx`.
 
 ## Prerequisites
 
@@ -28,6 +28,7 @@ uv run test tests/                              # all auth tests
 uv run test tests/test_1_sign_up.py             # sign-up only
 uv run test tests/test_2_sign_in.py             # sign-in only
 uv run test tests/test_3_reset_password.py      # reset-password only
+uv run test tests/test_4_user_profile.py      # user profile only
 uv run test tests -m sign_in                    # by marker
 uv run test tests -n auto                       # parallel (xdist)
 ```
@@ -65,6 +66,9 @@ uv run allure-report open           # open generated report
 | `BASE_TEST_URL` | App under test (required; tests skip if unset) |
 | `HEADED` | `1` / `true` / `yes` for headed browser (default: headless) |
 | `IGNORE_HTTPS_ERRORS` | `1` / `true` / `yes` to pass `--ignore-certificate-errors` |
+| `USER_EMAIL` | Login email for profile tests |
+| `USER_PASSWORD` | Login password for profile tests |
+| `USER_OTP` | OTP code when the test account uses 2FA |
 
 Variables are loaded from `.env` and optional `.env.e2e` at the project root. Existing process env vars are not overwritten.
 
@@ -77,6 +81,7 @@ File: `test_data/data.xlsx`
 | `sign_up` | `tests/test_1_sign_up.py` |
 | `login` | `tests/test_2_sign_in.py` |
 | `reset_password` | `tests/test_3_reset_password.py` |
+| `profile` | `tests/test_4_user_profile.py` |
 
 Format per sheet:
 

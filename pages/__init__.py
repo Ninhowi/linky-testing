@@ -8,6 +8,7 @@ from .sign_in import (
 )
 from .reset_password import ResetPasswordFormStep, ResetPasswordPage
 from .sign_up import SignUpFormStep, SignUpPage
+from .user_profile import ProfileSection, UserProfilePage
 
 __all__ = [
     "ClerkFormPage",
@@ -24,4 +25,6 @@ __all__ = [
     "SignInPage",
     "SignUpFormStep",
     "SignUpPage",
+    "ProfileSection",
+    "UserProfilePage",
 ]

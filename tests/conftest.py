@@ -9,7 +9,9 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
+from helpers.auth_session import login_with_env_credentials
 from helpers.env import load_env
+from pages.user_profile import UserProfilePage
 
 load_env()
 
@@ -30,8 +32,7 @@ def base_url() -> str:
     return url
 
 
-@pytest.fixture
-def driver():
+def _create_driver() -> webdriver.Chrome:
     binary_path = ensure_binary()
     options = Options()
     options.binary_location = binary_path
@@ -48,5 +49,24 @@ def driver():
     drv = webdriver.Chrome(service=Service(), options=options)
     drv.set_window_size(1280, 720)
     drv.implicitly_wait(0)
+    return drv
+
+
+@pytest.fixture
+def driver():
+    drv = _create_driver()
     yield drv
     drv.quit()
+
+
+@pytest.fixture(scope="module")
+def profile_driver(base_url: str):
+    """One logged-in browser session shared by all profile tests in the module."""
+    drv = _create_driver()
+    try:
+        login_with_env_credentials(drv, base_url)
+        drv.get(f"{base_url.rstrip('/')}{UserProfilePage.PATH}")
+        UserProfilePage.wait_until_ready(drv)
+        yield drv
+    finally:
+        drv.quit()

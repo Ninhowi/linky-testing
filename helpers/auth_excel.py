@@ -51,34 +51,34 @@ def load_sheet_cases(sheet: str, *, path: Path = DATA_XLSX) -> list[TestRow]:
     return cases
 
 
-def cell_text(value: object) -> str:
+def cell_input(value: object) -> str:
+    """Cell content as string; leading/trailing spaces are kept for form input."""
     if value is None:
         return ""
-    return str(value).strip()
-
-
-def cell_value(value: object) -> str | None:
-    text = cell_text(value)
-    return text or None
-
-
-def otp_text(value: object) -> str | None:
-    if value is None or cell_text(value) == "":
-        return None
-    if isinstance(value, float) and value.is_integer():
-        return str(int(value))
-    return cell_text(value)
-
-
-def password_text(value: object) -> str | None:
-    """Resolve password cells from Excel (handles numeric values like ``12345``)."""
-    if value is None or cell_text(value) == "":
-        return None
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
     if isinstance(value, int):
         return str(value)
-    return cell_text(value)
+    return str(value)
+
+
+def cell_text(value: object) -> str:
+    """Trimmed cell text for messages, flags, and other non-input fields."""
+    return cell_input(value).strip()
+
+
+def cell_value(value: object) -> str | None:
+    text = cell_input(value)
+    return text if text != "" else None
+
+
+def otp_text(value: object) -> str | None:
+    return cell_value(value)
+
+
+def password_text(value: object) -> str | None:
+    """Resolve password cells from Excel (handles numeric values like ``12345``)."""
+    return cell_value(value)
 
 
 OTP_LENGTH = 6

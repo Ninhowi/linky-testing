@@ -1,0 +1,40 @@
+---
+description: Use uv for all Python commands in this project
+alwaysApply: true
+---
+
+# Python via uv
+
+This project is managed with [uv](https://docs.astral.sh/uv/). **Never** use bare `python`, `pip`, or `pytest` — always go through uv so the correct interpreter and venv are used.
+
+## Commands
+
+| Task | Use | Avoid |
+|------|-----|-------|
+| Install/sync deps | `uv sync` | `pip install`, `pip install -r requirements.txt` |
+| Run a script or module | `uv run python script.py` | `python script.py` |
+| Run pytest | `uv run test tests/` or `uv run pytest tests/` | `pytest tests/` |
+| Run project scripts | `uv run test`, `uv run ensure-cloak`, `uv run allure-report` | invoking helpers directly without uv |
+| Add a dependency | `uv add <package>` | `pip install <package>` |
+| One-off tool | `uv run <tool> <args>` | installing globally or outside the project env |
+
+## Examples
+
+```bash
+# ✅ GOOD
+uv sync
+uv run test tests/test_1_sign_up.py
+uv run pytest tests/ -k "signup" -v
+uv run python -c "from helpers.auth_excel import cell_value"
+
+# ❌ BAD
+python -m pytest tests/
+pip install selenium
+pytest tests/
+```
+
+## Notes
+
+- Python version is pinned in `.python-version` (3.14); uv selects it automatically.
+- On Windows (PowerShell), use `;` instead of `&&` to chain shell commands.
+- Prefer documented `uv run` scripts in `pyproject.toml` (`test`, `ensure-cloak`, `allure-report`) when they fit the task.

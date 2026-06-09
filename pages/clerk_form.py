@@ -108,7 +108,7 @@ class IdentifierStep(ClerkFormPage):
     def fill_email(self, email: str) -> None:
         inp = self.email_input()
         inp.clear()
-        if " " in _email_local_part(email):
+        if " " in email:
             self._driver.execute_script(_SET_INPUT_VALUE_JS, inp, email)
             return
         inp.send_keys(email)

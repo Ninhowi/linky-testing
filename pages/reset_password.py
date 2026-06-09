@@ -1,4 +1,7 @@
-"""Reset-password form after sign-in identifier → forgot → OTP."""
+"""Reset-password form after sign-in identifier → forgot → OTP.
+
+Form đặt lại mật khẩu sau đăng nhập identifier → quên mật khẩu → OTP.
+"""
 
 from __future__ import annotations
 
@@ -32,7 +35,10 @@ _UI_SETTLE_SEC = 0.4
 
 
 class ResetPasswordFormStep(ClerkFormPage):
-    """Set-new-password form after OTP verification."""
+    """Set-new-password form after OTP verification.
+
+    Form đặt mật khẩu mới sau khi xác minh OTP.
+    """
 
     def new_password_input(self) -> WebElement:
         el = first_visible_css(
@@ -76,7 +82,10 @@ class ResetPasswordFormStep(ClerkFormPage):
         new_password: str | None,
         confirm_password: str | None,
     ) -> None:
-        """Fill both fields, then pause for Clerk validation UI to update."""
+        """Fill both fields, then pause for Clerk validation UI to update.
+
+        Điền cả hai trường, rồi tạm dừng để UI xác thực Clerk cập nhật.
+        """
         if new_password:
             self.fill_new_password(new_password)
         if confirm_password:
@@ -126,7 +135,10 @@ class ResetPasswordFormStep(ClerkFormPage):
 
 
 class ResetPasswordPage(SignInPage):
-    """Sign-in path through OTP, plus the set-new-password form."""
+    """Sign-in path through OTP, plus the set-new-password form.
+
+    Luồng đăng nhập qua OTP, kèm form đặt mật khẩu mới.
+    """
 
     def __init__(self, driver: WebDriver) -> None:
         super().__init__(driver)

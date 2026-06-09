@@ -1,4 +1,7 @@
-"""Sign-in cases driven by test_data/data.xlsx (sheet: login)."""
+"""Sign-in cases driven by test_data/data.xlsx (sheet: login).
+
+Các test case đăng nhập từ test_data/data.xlsx (sheet: login).
+"""
 
 from __future__ import annotations
 
@@ -51,7 +54,10 @@ def _run_login_flow(page: SignInPage, case: TestRow) -> None:
 
 
 def _field_for_assertion(page: SignInPage, case: TestRow) -> WebElement:
-    """Pick the input field most likely tied to the expected error."""
+    """Pick the input field most likely tied to the expected error.
+
+    Chọn trường input khả năng cao nhất liên quan đến lỗi mong đợi.
+    """
     message = message_lower(case)
     steps = sign_in_steps(case)
 
@@ -68,7 +74,10 @@ def _field_for_assertion(page: SignInPage, case: TestRow) -> WebElement:
     ids=[case_id("login", i, row) for i, row in enumerate(LOGIN_CASES)],
 )
 def test_sign_in_from_excel(driver, base_url: str, login_case: TestRow) -> None:
-    """Each ``login`` sheet row: email / password / otp inputs and ``message`` assertion."""
+    """Each ``login`` sheet row: email / password / otp inputs and ``message`` assertion.
+
+    Mỗi dòng sheet ``login``: nhập email / password / OTP và kiểm tra ``message``.
+    """
     page = SignInPage.open(driver, base_url)
     _run_login_flow(page, login_case)
     assert_auth_outcome(

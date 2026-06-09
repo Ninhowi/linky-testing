@@ -1,4 +1,7 @@
-"""Profile save outcome assertions (field errors + toast)."""
+"""Profile save outcome assertions (field errors + toast).
+
+Các assertion kết quả lưu profile (lỗi trường + toast).
+"""
 
 from __future__ import annotations
 
@@ -27,7 +30,10 @@ _VALIDATION_HINTS = (
 
 
 def profile_combobox_not_found_messages(case: TestRow) -> list[str]:
-    """Messages for combobox empty states like ``No tags found.``."""
+    """Messages for combobox empty states like ``No tags found.``.
+
+    Thông báo khi combobox trống như ``No tags found.``.
+    """
     return [
         message
         for message in profile_assert_messages(case)
@@ -36,7 +42,10 @@ def profile_combobox_not_found_messages(case: TestRow) -> list[str]:
 
 
 def profile_assert_messages(case: TestRow) -> list[str]:
-    """Messages that may appear for a profile row (primary + known UI variants)."""
+    """Messages that may appear for a profile row (primary + known UI variants).
+
+    Các thông báo có thể xuất hiện ở dòng profile (chính + các biến thể UI đã biết).
+    """
     message = cell_text(case.get("message"))
     if not message:
         return []
@@ -54,13 +63,19 @@ def profile_assert_messages(case: TestRow) -> list[str]:
 
 
 def profile_expects_field_error(case: TestRow) -> bool:
-    """Return whether the row expects a validation outcome (field and/or toast)."""
+    """Return whether the row expects a validation outcome (field and/or toast).
+
+    Trả về dòng có mong đợi kết quả xác thực (trường và/hoặc toast) hay không.
+    """
     message = cell_text(case.get("message")).lower()
     return any(hint in message for hint in _VALIDATION_HINTS)
 
 
 def profile_expects_inline_field_error(case: TestRow) -> bool:
-    """Return whether the row expects an error under the form field (not toast-only)."""
+    """Return whether the row expects an error under the form field (not toast-only).
+
+    Trả về dòng có mong đợi lỗi dưới trường form (không chỉ toast) hay không.
+    """
     message = cell_text(case.get("message")).lower()
     if not profile_expects_field_error(case):
         return False
@@ -70,7 +85,10 @@ def profile_expects_inline_field_error(case: TestRow) -> bool:
 
 
 def profile_field_for_message(case: TestRow) -> str | None:
-    """Pick the column whose inline error is most likely tied to ``message``."""
+    """Pick the column whose inline error is most likely tied to ``message``.
+
+    Chọn cột có lỗi inline khả năng cao nhất liên quan đến ``message``.
+    """
     message = cell_text(case.get("message")).lower()
     section = section_name(case)
 
@@ -105,7 +123,10 @@ def profile_field_for_message(case: TestRow) -> str | None:
 
 
 def assert_profile_field_error(page: UserProfilePage, case: TestRow) -> None:
-    """Assert inline field error for validation rows (priority over toast)."""
+    """Assert inline field error for validation rows (priority over toast).
+
+    Kiểm tra lỗi inline trường cho dòng xác thực (ưu tiên hơn toast).
+    """
     if not profile_expects_inline_field_error(case):
         return
     messages = profile_assert_messages(case)
@@ -118,14 +139,20 @@ def assert_profile_field_error(page: UserProfilePage, case: TestRow) -> None:
 
 
 def assert_profile_toast(page: UserProfilePage, case: TestRow) -> None:
-    """Assert the toast message for a profile row."""
+    """Assert the toast message for a profile row.
+
+    Kiểm tra thông báo toast cho dòng profile.
+    """
     messages = profile_assert_messages(case)
     if messages:
         page.assert_toast(messages)
 
 
 def profile_expects_toast(case: TestRow) -> bool:
-    """Return whether a toast is expected (some rows are field-error only)."""
+    """Return whether a toast is expected (some rows are field-error only).
+
+    Trả về có mong đợi toast hay không (một số dòng chỉ có lỗi trường).
+    """
     message = cell_text(case.get("message")).lower()
     if not message:
         return False
@@ -135,6 +162,9 @@ def profile_expects_toast(case: TestRow) -> bool:
 
 
 def assert_profile_outcome(page: UserProfilePage, case: TestRow) -> None:
-    """Assert toast after save has finished (field errors asserted earlier)."""
+    """Assert toast after save has finished (field errors asserted earlier).
+
+    Kiểm tra toast sau khi lưu xong (lỗi trường đã kiểm tra trước).
+    """
     if profile_expects_toast(case):
         assert_profile_toast(page, case)

@@ -1,4 +1,7 @@
-"""Generate or serve Allure reports from allure-results."""
+"""Generate or serve Allure reports from allure-results.
+
+Tạo hoặc phục vụ báo cáo Allure từ allure-results.
+"""
 
 from __future__ import annotations
 
@@ -46,26 +49,38 @@ def _ensure_results(results_dir: Path) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Serve or generate Allure HTML report from allure-results.",
+        description=(
+            "Serve or generate Allure HTML report from allure-results.\n"
+            "Phục vụ hoặc tạo báo cáo Allure HTML từ allure-results."
+        ),
     )
     parser.add_argument(
         "action",
         nargs="?",
         choices=("serve", "generate", "open"),
         default="serve",
-        help="serve: live report (default); generate: static HTML; open: open generated report",
+        help=(
+            "serve: live report (default); generate: static HTML; open: open generated report. "
+            "serve: báo cáo trực tiếp (mặc định); generate: HTML tĩnh; open: mở báo cáo đã tạo."
+        ),
     )
     parser.add_argument(
         "--results",
         type=Path,
         default=_DEFAULT_RESULTS,
-        help=f"Allure results directory (default: {_DEFAULT_RESULTS})",
+        help=(
+            f"Allure results directory (default: {_DEFAULT_RESULTS}). "
+            f"Thư mục kết quả Allure (mặc định: {_DEFAULT_RESULTS})."
+        ),
     )
     parser.add_argument(
         "--output",
         type=Path,
         default=_DEFAULT_OUTPUT,
-        help=f"Generated report directory (default: {_DEFAULT_OUTPUT})",
+        help=(
+            f"Generated report directory (default: {_DEFAULT_OUTPUT}). "
+            f"Thư mục báo cáo đã tạo (mặc định: {_DEFAULT_OUTPUT})."
+        ),
     )
     args = parser.parse_args(argv)
 

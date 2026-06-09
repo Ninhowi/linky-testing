@@ -1,4 +1,7 @@
-"""Reset-password cases driven by test_data/data.xlsx (sheet: reset_password)."""
+"""Reset-password cases driven by test_data/data.xlsx (sheet: reset_password).
+
+Các test case đặt lại mật khẩu từ test_data/data.xlsx (sheet: reset_password).
+"""
 
 from __future__ import annotations
 
@@ -28,7 +31,10 @@ RESET_PASSWORD_CASES = load_sheet_cases("reset_password")
 
 
 def _run_sign_in_through_otp(page: ResetPasswordPage, case: TestRow) -> None:
-    """Same identifier → password → OTP steps as ``test_sign_in``."""
+    """Same identifier → password → OTP steps as ``test_sign_in``.
+
+    Cùng các bước identifier → password → OTP như ``test_sign_in``.
+    """
     steps = reset_password_steps(case)
     email = cell_value(case.get("email"))
     otp = otp_text(case.get("otp"))
@@ -69,7 +75,10 @@ def _run_reset_password_flow(page: ResetPasswordPage, case: TestRow) -> None:
 
 
 def _field_for_assertion(page: ResetPasswordPage, case: TestRow) -> WebElement:
-    """Pick the input field most likely tied to the expected error."""
+    """Pick the input field most likely tied to the expected error.
+
+    Chọn trường input khả năng cao nhất liên quan đến lỗi mong đợi.
+    """
     message = message_lower(case)
     steps = reset_password_steps(case)
 
@@ -94,7 +103,10 @@ def _field_for_assertion(page: ResetPasswordPage, case: TestRow) -> WebElement:
 def test_reset_password_from_excel(
     driver, base_url: str, reset_case: TestRow
 ) -> None:
-    """Each ``reset_password`` sheet row: sign-in → forgot → OTP → reset form."""
+    """Each ``reset_password`` sheet row: sign-in → forgot → OTP → reset form.
+
+    Mỗi dòng sheet ``reset_password``: đăng nhập → quên mật khẩu → OTP → form đặt lại.
+    """
     page = ResetPasswordPage.open(driver, base_url)
     _run_reset_password_flow(page, reset_case)
     assert_auth_outcome(

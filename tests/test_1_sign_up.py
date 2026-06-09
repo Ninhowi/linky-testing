@@ -1,4 +1,7 @@
-"""Sign-up cases driven by test_data/data.xlsx (sheet: sign_up)."""
+"""Sign-up cases driven by test_data/data.xlsx (sheet: sign_up).
+
+Các test case đăng ký từ test_data/data.xlsx (sheet: sign_up).
+"""
 
 from __future__ import annotations
 
@@ -44,7 +47,10 @@ def _run_sign_up_flow(page: SignUpPage, case: TestRow) -> None:
 
 
 def _field_for_assertion(page: SignUpPage, case: TestRow) -> WebElement:
-    """Pick the input field most likely tied to the expected error."""
+    """Pick the input field most likely tied to the expected error.
+
+    Chọn trường input khả năng cao nhất liên quan đến lỗi mong đợi.
+    """
     message = message_lower(case)
     steps = sign_up_steps(case)
 
@@ -63,7 +69,10 @@ def _field_for_assertion(page: SignUpPage, case: TestRow) -> WebElement:
     ids=[case_id("signup", i, row) for i, row in enumerate(SIGN_UP_CASES)],
 )
 def test_sign_up_from_excel(driver, base_url: str, sign_up_case: TestRow) -> None:
-    """Each ``sign_up`` sheet row: registration form / otp inputs and ``message`` assertion."""
+    """Each ``sign_up`` sheet row: registration form / otp inputs and ``message`` assertion.
+
+    Mỗi dòng sheet ``sign_up``: nhập form đăng ký / OTP và kiểm tra ``message``.
+    """
     page = SignUpPage.open(driver, base_url)
     _run_sign_up_flow(page, sign_up_case)
     assert_auth_outcome(

@@ -1,4 +1,7 @@
-"""Sign-in page objects (Clerk identifier, password, and OTP steps)."""
+"""Sign-in page objects (Clerk identifier, password, and OTP steps).
+
+Page object đăng nhập (các bước identifier, password và OTP của Clerk).
+"""
 
 from __future__ import annotations
 
@@ -48,7 +51,10 @@ class OTPPage(OTPStep):
 
 
 class ForgotPasswordPage(ClerkFormPage):
-    """Forgot-password chooser reached from the password step."""
+    """Forgot-password chooser reached from the password step.
+
+    Màn hình chọn quên mật khẩu, truy cập từ bước password.
+    """
 
     def reset_your_password_button(self) -> WebElement:
         return by_role(self._driver, "button", name=_RESET_PASSWORD)
@@ -58,7 +64,10 @@ class ForgotPasswordPage(ClerkFormPage):
 
 
 class SignInPage(ClerkFormPage):
-    """Convenience facade for the multi-step sign-in flow."""
+    """Convenience facade for the multi-step sign-in flow.
+
+    Facade tiện lợi cho luồng đăng nhập nhiều bước.
+    """
 
     def __init__(self, driver: WebDriver) -> None:
         super().__init__(driver)
@@ -85,7 +94,10 @@ class SignInPage(ClerkFormPage):
         self.password.submit_password(password)
 
     def advance_to_otp(self, email: str, password: str) -> None:
-        """Submit valid credentials and wait for the OTP / factor-two step."""
+        """Submit valid credentials and wait for the OTP / factor-two step.
+
+        Gửi thông tin đăng nhập hợp lệ và chờ bước OTP / factor-two.
+        """
         self.submit_credentials(email, password)
         self.otp.wait_until_visible()
 

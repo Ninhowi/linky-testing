@@ -1,4 +1,7 @@
-"""HTML5 input validation helpers for Selenium."""
+"""HTML5 input validation helpers for Selenium.
+
+Hàm hỗ trợ xác thực input HTML5 cho Selenium.
+"""
 
 from __future__ import annotations
 
@@ -83,7 +86,10 @@ def _messages_match(expected: str, actual: str) -> bool:
 
 
 def _clerk_field_error_visible(driver: WebDriver, message: str) -> bool:
-    """Return whether a visible Clerk field error contains ``message``."""
+    """Return whether a visible Clerk field error contains ``message``.
+
+    Trả về lỗi trường Clerk hiển thị có chứa ``message`` hay không.
+    """
     for selector in _CLERK_FIELD_ERROR_SELECTORS:
         for element in driver.find_elements(By.CSS_SELECTOR, selector):
             try:
@@ -124,7 +130,10 @@ def _validation_message_matches(
     element: WebElement,
     message: str,
 ) -> bool:
-    """Return True when ``message`` matches any relevant ``validationMessage``."""
+    """Return True when ``message`` matches any relevant ``validationMessage``.
+
+    Trả về True khi ``message`` khớp ``validationMessage`` liên quan.
+    """
     matched = driver.execute_script(_MATCH_VALIDATION_JS, element, message)
     return matched is not None
 
@@ -136,7 +145,10 @@ def _auth_message_visible(
     *,
     exact: bool = False,
 ) -> bool:
-    """Return whether ``message`` is visible via validation, Clerk errors, or screen text."""
+    """Return whether ``message`` is visible via validation, Clerk errors, or screen text.
+
+    Trả về ``message`` có hiển thị qua validation, lỗi Clerk hoặc văn bản màn hình.
+    """
     input_el = _resolve_input(element)
     if input_el is not None:
         try:
@@ -159,7 +171,10 @@ def assert_input_and_screen_message(
     exact: bool = False,
     timeout: float = 10,
 ) -> None:
-    """Assert ``message`` appears in ``validationMessage``, Clerk field errors, or on screen."""
+    """Assert ``message`` appears in ``validationMessage``, Clerk field errors, or on screen.
+
+    Kiểm tra ``message`` xuất hiện trong ``validationMessage``, lỗi trường Clerk hoặc màn hình.
+    """
     poll_timeout = max(timeout, 0.5)
 
     def _satisfied(_driver: WebDriver) -> bool:

@@ -1,4 +1,7 @@
-"""Download and verify CloakBrowser Chromium and matching ChromeDriver for Selenium."""
+"""Download and verify CloakBrowser Chromium and matching ChromeDriver for Selenium.
+
+Tải và xác minh CloakBrowser Chromium cùng ChromeDriver tương thích cho Selenium.
+"""
 
 from __future__ import annotations
 
@@ -18,7 +21,10 @@ def _setup_logging() -> None:
 
 
 def install_chromedriver(binary_path: str) -> str:
-    """Resolve ChromeDriver matched to the Cloak Chromium binary via Selenium Manager."""
+    """Resolve ChromeDriver matched to the Cloak Chromium binary via Selenium Manager.
+
+    Tìm ChromeDriver khớp với binary Cloak Chromium qua Selenium Manager.
+    """
     from selenium.webdriver.chrome.options import Options
     from selenium.webdriver.chrome.service import Service
     from selenium.webdriver.common.driver_finder import DriverFinder
@@ -32,12 +38,18 @@ def install_chromedriver(binary_path: str) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Download / verify CloakBrowser Chromium and ChromeDriver for Selenium.",
+        description=(
+            "Download / verify CloakBrowser Chromium and ChromeDriver for Selenium.\n"
+            "Tải / xác minh CloakBrowser Chromium và ChromeDriver cho Selenium."
+        ),
     )
     parser.add_argument(
         "--skip-chromedriver",
         action="store_true",
-        help="Only ensure the CloakBrowser Chromium binary (skip ChromeDriver).",
+        help=(
+            "Only ensure the CloakBrowser Chromium binary (skip ChromeDriver). "
+            "Chỉ đảm bảo binary CloakBrowser Chromium (bỏ qua ChromeDriver)."
+        ),
     )
     args = parser.parse_args(argv)
 

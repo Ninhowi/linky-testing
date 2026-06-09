@@ -1,4 +1,7 @@
-"""User profile page at ``/user/profile``."""
+"""User profile page at ``/user/profile``.
+
+Trang hồ sơ người dùng tại ``/user/profile``.
+"""
 
 from __future__ import annotations
 
@@ -156,7 +159,10 @@ class ProfileSection:
         return roots
 
     def field_anchor(self, column: str) -> WebElement:
-        """Return the input or combobox trigger for ``column``."""
+        """Return the input or combobox trigger for ``column``.
+
+        Trả về input hoặc nút mở combobox cho ``column``.
+        """
         if column in _ARIA_FIELDS:
             label = _ARIA_FIELDS[column]
             selector = f"input[aria-label='{label}'], textarea[aria-label='{label}']"
@@ -170,7 +176,10 @@ class ProfileSection:
         raise ValueError(f"Unsupported profile column {column!r}")
 
     def all_field_errors(self) -> list[str]:
-        """Return visible inline error messages within this section."""
+        """Return visible inline error messages within this section.
+
+        Trả về thông báo lỗi inline hiển thị trong section này.
+        """
         texts: list[str] = []
         scopes = self._section_roots() or [self._driver.find_element(By.TAG_NAME, "body")]
         for scope in scopes:
@@ -186,7 +195,10 @@ class ProfileSection:
         return texts
 
     def field_error_text(self, column: str) -> str | None:
-        """Return visible inline error text beside ``column``, if any."""
+        """Return visible inline error text beside ``column``, if any.
+
+        Trả về văn bản lỗi inline hiển thị cạnh ``column``, nếu có.
+        """
         try:
             anchor = self.field_anchor(column)
         except (TimeoutException, StaleElementReferenceException):
@@ -385,7 +397,10 @@ class ProfileSection:
         return False
 
     def visible_combobox_not_found_text(self) -> str | None:
-        """Return visible combobox empty-state text like ``No tags found.``."""
+        """Return visible combobox empty-state text like ``No tags found.``.
+
+        Trả về văn bản trạng thái trống combobox hiển thị như ``No tags found.``.
+        """
         for selector in _COMBOBOX_EMPTY_SELECTORS:
             for element in self._driver.find_elements(By.CSS_SELECTOR, selector):
                 try:
@@ -412,7 +427,10 @@ class ProfileSection:
         self,
         messages: str | list[str] | None = None,
     ) -> None:
-        """Assert combobox empty-state text when the dropdown shows ``No … found.``."""
+        """Assert combobox empty-state text when the dropdown shows ``No … found.``.
+
+        Kiểm tra văn bản trạng thái trống combobox khi dropdown hiển thị ``No … found.``.
+        """
         text = self.visible_combobox_not_found_text()
         if text is None:
             return

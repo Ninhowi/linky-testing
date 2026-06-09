@@ -1,4 +1,7 @@
-"""Selenium wait helpers for Clerk auth flows."""
+"""Selenium wait helpers for Clerk auth flows.
+
+Hàm chờ Selenium cho luồng xác thực Clerk.
+"""
 
 from __future__ import annotations
 

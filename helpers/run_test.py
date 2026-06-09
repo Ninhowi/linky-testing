@@ -1,4 +1,7 @@
-"""Run pytest with default -s -v and Allure reporting."""
+"""Run pytest with default -s -v and Allure reporting.
+
+Chạy pytest với mặc định -s -v và báo cáo Allure.
+"""
 
 from __future__ import annotations
 

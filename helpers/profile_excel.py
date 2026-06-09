@@ -1,4 +1,7 @@
-"""Excel helpers for user-profile test cases."""
+"""Excel helpers for user-profile test cases.
+
+Các hàm hỗ trợ Excel cho test case hồ sơ người dùng.
+"""
 
 from __future__ import annotations
 
@@ -24,7 +27,10 @@ _COLUMN_TO_SECTION: dict[str, str] = {
 
 
 def profile_cell_text(value: object) -> str | None:
-    """Resolve a profile sheet cell to text, formatting dates as ``DD/MM/YYYY``."""
+    """Resolve a profile sheet cell to text, formatting dates as ``DD/MM/YYYY``.
+
+    Chuyển ô sheet profile thành văn bản, định dạng ngày ``DD/MM/YYYY``.
+    """
     if value is None:
         return None
     if isinstance(value, datetime):
@@ -86,7 +92,10 @@ def section_name(case: TestRow) -> str:
 
 
 def fields_to_fill(case: TestRow, section: str) -> list[tuple[str, str]]:
-    """Return ``(column, value)`` pairs for non-``None`` cells in the section."""
+    """Return ``(column, value)`` pairs for non-``None`` cells in the section.
+
+    Trả về các cặp ``(cột, giá trị)`` cho ô không ``None`` trong section.
+    """
     columns = SECTION_FIELDS[section]
     fields: list[tuple[str, str]] = []
     for column in columns:

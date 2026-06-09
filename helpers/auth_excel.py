@@ -1,4 +1,7 @@
-"""Shared helpers for Excel-driven auth flow tests."""
+"""Shared helpers for Excel-driven auth flow tests.
+
+Các hàm hỗ trợ dùng chung cho các bài test luồng xác thực dựa trên Excel.
+"""
 
 from __future__ import annotations
 
@@ -40,6 +43,10 @@ class AuthPage(Protocol):
 
 
 def load_sheet_cases(sheet: str, *, path: Path = DATA_XLSX) -> list[TestRow]:
+    """Load test rows for one sheet from the default or given Excel workbook.
+
+    Nạp các dòng test cho một sheet từ workbook Excel mặc định hoặc chỉ định.
+    """
     workbook = load_excel(path)
     cases = workbook.get(sheet)
     if cases is None:
@@ -52,7 +59,10 @@ def load_sheet_cases(sheet: str, *, path: Path = DATA_XLSX) -> list[TestRow]:
 
 
 def cell_input(value: object) -> str:
-    """Cell content as string; leading/trailing spaces are kept for form input."""
+    """Cell content as string; leading/trailing spaces are kept for form input.
+
+    Nội dung ô dưới dạng chuỗi; giữ nguyên khoảng trắng đầu/cuối khi nhập form.
+    """
     if value is None:
         return ""
     if isinstance(value, float) and value.is_integer():
@@ -63,21 +73,35 @@ def cell_input(value: object) -> str:
 
 
 def cell_text(value: object) -> str:
-    """Trimmed cell text for messages, flags, and other non-input fields."""
+    """Trimmed cell text for messages, flags, and other non-input fields.
+
+    Văn bản ô đã cắt khoảng trắng, dùng cho thông báo, cờ và các trường không phải nhập liệu.
+    """
     return cell_input(value).strip()
 
 
 def cell_value(value: object) -> str | None:
+    """Return cell text, or ``None`` when the cell is empty.
+
+    Trả về văn bản ô, hoặc ``None`` khi ô trống.
+    """
     text = cell_input(value)
     return text if text != "" else None
 
 
 def otp_text(value: object) -> str | None:
+    """Return OTP cell text, or ``None`` when empty.
+
+    Trả về văn bản ô OTP, hoặc ``None`` khi trống.
+    """
     return cell_value(value)
 
 
 def password_text(value: object) -> str | None:
-    """Resolve password cells from Excel (handles numeric values like ``12345``)."""
+    """Resolve password cells from Excel (handles numeric values like ``12345``).
+
+    Đọc ô mật khẩu từ Excel (xử lý giá trị số như ``12345``).
+    """
     return cell_value(value)
 
 
@@ -85,14 +109,20 @@ OTP_LENGTH = 6
 
 
 def otp_is_complete(otp: str | None, *, length: int = OTP_LENGTH) -> bool:
-    """Return whether ``otp`` has the full number of digits expected by Clerk."""
+    """Return whether ``otp`` has the full number of digits expected by Clerk.
+
+    Trả về ``otp`` đã đủ số chữ số mà Clerk yêu cầu hay chưa.
+    """
     if not otp:
         return False
     return len(otp) >= length
 
 
 def term_accepted(case: TestRow) -> bool:
-    """Return whether the legal checkbox should be checked (``term`` column: 1=yes, 0=no)."""
+    """Return whether the legal checkbox should be checked (``term`` column: 1=yes, 0=no).
+
+    Trả về có nên chọn checkbox điều khoản hay không (cột ``term``: 1=có, 0=không).
+    """
     term = case.get("term")
     if term is None:
         return False
@@ -108,7 +138,10 @@ def _random_suffix(length: int = 6) -> str:
 
 
 def uniquify_clerk_test_email(email: str, *, suffix_length: int = 6) -> str:
-    """Turn ``name+clerk_test@domain`` into ``name<random>+clerk_test@domain``."""
+    """Turn ``name+clerk_test@domain`` into ``name<random>+clerk_test@domain``.
+
+    Biến ``name+clerk_test@domain`` thành ``name<ngẫu_nhiên>+clerk_test@domain``.
+    """
     match = _CLERK_TEST_EMAIL.fullmatch(email.strip())
     if match is None:
         return email
@@ -119,7 +152,10 @@ def uniquify_clerk_test_email(email: str, *, suffix_length: int = 6) -> str:
 
 
 def should_uniquify_sign_up_email(case: TestRow, email: str) -> bool:
-    """Only mutate emails that match the clerk_test template and are meant to be valid."""
+    """Only mutate emails that match the clerk_test template and are meant to be valid.
+
+    Chỉ thay đổi email khớp mẫu clerk_test và được coi là hợp lệ.
+    """
     if _CLERK_TEST_EMAIL.fullmatch(email.strip()) is None:
         return False
     if " " in email.split("@", 1)[0]:
@@ -138,7 +174,10 @@ def should_uniquify_sign_up_email(case: TestRow, email: str) -> bool:
 
 
 def sign_up_email(case: TestRow) -> str | None:
-    """Resolve the sign-up email from Excel, uniquified when the case needs a fresh address."""
+    """Resolve the sign-up email from Excel, uniquified when the case needs a fresh address.
+
+    Lấy email đăng ký từ Excel, làm duy nhất khi test case cần địa chỉ mới.
+    """
     raw = cell_value(case.get("email"))
     if raw is None:
         return None
@@ -148,7 +187,10 @@ def sign_up_email(case: TestRow) -> str | None:
 
 
 def sign_up_assert_messages(case: TestRow) -> list[str]:
-    """Messages that may appear for a sign-up row (primary + known Clerk/HTML5 variants)."""
+    """Messages that may appear for a sign-up row (primary + known Clerk/HTML5 variants).
+
+    Các thông báo có thể xuất hiện ở dòng đăng ký (chính + các biến thể Clerk/HTML5 đã biết).
+    """
     message = cell_text(case.get("message"))
     if not message:
         return []
@@ -164,6 +206,10 @@ def sign_up_assert_messages(case: TestRow) -> list[str]:
 
 
 def case_id(prefix: str, index: int, case: TestRow) -> str:
+    """Build a stable pytest parametrize id from prefix, row index, and message.
+
+    Tạo id pytest parametrize ổn định từ prefix, chỉ số dòng và message.
+    """
     message = cell_text(case.get("message"))
     if message:
         return f"{prefix}-{index + 1}-{message[:40]}"
@@ -171,11 +217,18 @@ def case_id(prefix: str, index: int, case: TestRow) -> str:
 
 
 def message_lower(case: TestRow) -> str:
+    """Return the row ``message`` column in lowercase.
+
+    Trả về cột ``message`` của dòng ở dạng chữ thường.
+    """
     return cell_text(case.get("message")).lower()
 
 
 def sign_in_steps(case: TestRow) -> dict[str, bool]:
-    """Decide how far the sign-in flow runs before asserting ``message``."""
+    """Decide how far the sign-in flow runs before asserting ``message``.
+
+    Quyết định luồng đăng nhập chạy đến đâu trước khi kiểm tra ``message``.
+    """
     message = cell_text(case.get("message"))
     if not message:
         return {"email": True, "password": True, "otp": True}
@@ -189,7 +242,10 @@ def sign_in_steps(case: TestRow) -> dict[str, bool]:
 
 
 def excel_flag(case: TestRow, column: str) -> bool | None:
-    """Parse a 0/1 Excel flag column; ``None`` when the cell is empty."""
+    """Parse a 0/1 Excel flag column; ``None`` when the cell is empty.
+
+    Phân tích cột cờ 0/1 trong Excel; ``None`` khi ô trống.
+    """
     value = case.get(column)
     if value is None:
         return None
@@ -201,7 +257,10 @@ def excel_flag(case: TestRow, column: str) -> bool | None:
 
 
 def log_out_all_devices(case: TestRow) -> bool | None:
-    """Return whether the sign-out checkbox should be checked (``log_out``: 1=yes, 0=no)."""
+    """Return whether the sign-out checkbox should be checked (``log_out``: 1=yes, 0=no).
+
+    Trả về có nên chọn checkbox đăng xuất hay không (``log_out``: 1=có, 0=không).
+    """
     return excel_flag(case, "log_out")
 
 
@@ -210,6 +269,10 @@ def reset_password_steps(case: TestRow) -> dict[str, bool]:
 
     Uses the same step keys as ``sign_in_steps`` for the sign-in portion
     (``password`` = password page with forgot-password link, then OTP).
+
+    Quyết định luồng đặt lại mật khẩu chạy đến đâu trước khi kiểm tra ``message``.
+    Dùng cùng khóa bước với ``sign_in_steps`` cho phần đăng nhập
+    (``password`` = trang mật khẩu có liên kết quên mật khẩu, rồi OTP).
     """
     message = cell_text(case.get("message"))
     if not message:
@@ -224,7 +287,10 @@ def reset_password_steps(case: TestRow) -> dict[str, bool]:
 
 
 def reset_password_should_submit(case: TestRow) -> bool:
-    """Return whether to click Reset Password (``submit``: 1=yes, 0=no)."""
+    """Return whether to click Reset Password (``submit``: 1=yes, 0=no).
+
+    Trả về có nên nhấn Đặt lại mật khẩu hay không (``submit``: 1=có, 0=không).
+    """
     submit = excel_flag(case, "button")
     if submit is not None:
         return submit
@@ -232,7 +298,10 @@ def reset_password_should_submit(case: TestRow) -> bool:
 
 
 def reset_password_assert_messages(case: TestRow) -> list[str]:
-    """Messages that may appear for a reset-password row."""
+    """Messages that may appear for a reset-password row.
+
+    Các thông báo có thể xuất hiện ở dòng đặt lại mật khẩu.
+    """
     message = cell_text(case.get("message"))
     if not message:
         return []
@@ -251,7 +320,10 @@ def reset_password_assert_messages(case: TestRow) -> list[str]:
 
 
 def sign_up_steps(case: TestRow) -> dict[str, bool]:
-    """Decide how far the sign-up flow runs before asserting ``message``."""
+    """Decide how far the sign-up flow runs before asserting ``message``.
+
+    Quyết định luồng đăng ký chạy đến đâu trước khi kiểm tra ``message``.
+    """
     message = cell_text(case.get("message"))
     email = cell_value(case.get("email"))
     password = cell_value(case.get("password"))
@@ -299,7 +371,10 @@ def sign_up_steps(case: TestRow) -> dict[str, bool]:
 
 
 def auth_case_involves_password_form(case: TestRow) -> bool:
-    """Return whether the case expects a password-field validation message."""
+    """Return whether the case expects a password-field validation message.
+
+    Trả về test case có mong đợi thông báo xác thực trường mật khẩu hay không.
+    """
     if "password" in message_lower(case):
         return True
     for key in ("password", "new_password", "confirm_password"):
@@ -316,7 +391,10 @@ def wait_password_validation_transition(
     field_for_assertion: Callable[[Any, TestRow], WebElement],
     messages: list[str],
 ) -> None:
-    """Wait for Clerk password validation text to finish animating in."""
+    """Wait for Clerk password validation text to finish animating in.
+
+    Chờ văn bản xác thực mật khẩu của Clerk hoàn tất hiệu ứng chuyển động.
+    """
     if not auth_case_involves_password_form(case):
         return
 
@@ -341,6 +419,10 @@ def assert_auth_outcome(
     wait_timeout: float = 20,
     messages: list[str] | None = None,
 ) -> None:
+    """Assert expected auth messages or wait until the auth flow completes.
+
+    Kiểm tra thông báo xác thực mong đợi hoặc chờ đến khi luồng xác thực hoàn tất.
+    """
     expected_messages = messages or [cell_text(case.get("message"))]
     expected_messages = [msg for msg in expected_messages if msg]
 

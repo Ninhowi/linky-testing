@@ -1,4 +1,7 @@
-"""Selenium locators and assertions for visible text on screen."""
+"""Selenium locators and assertions for visible text on screen.
+
+Locator Selenium và assertion cho văn bản hiển thị trên màn hình.
+"""
 
 from __future__ import annotations
 
@@ -107,7 +110,10 @@ def _xpath_literal(text: str) -> str:
 
 
 def text_xpath(text: str, *, exact: bool = False) -> str:
-    """Build an XPath that matches an element containing ``text``."""
+    """Build an XPath that matches an element containing ``text``.
+
+    Tạo XPath khớp phần tử chứa ``text``.
+    """
     literal = _xpath_literal(text)
     if exact:
         return f"//*[normalize-space(.)={literal}]"
@@ -121,7 +127,10 @@ def wait_for_text(
     exact: bool = False,
     timeout: float = 10,
 ) -> WebElement:
-    """Wait until ``text`` is visible and return the matching element."""
+    """Wait until ``text`` is visible and return the matching element.
+
+    Chờ đến khi ``text`` hiển thị và trả về phần tử khớp.
+    """
     locator = (By.XPATH, text_xpath(text, exact=exact))
     return WebDriverWait(driver, timeout).until(
         EC.visibility_of_element_located(locator)
@@ -135,5 +144,8 @@ def assert_text_on_screen(
     exact: bool = False,
     timeout: float = 10,
 ) -> WebElement:
-    """Assert that ``text`` is visible on screen."""
+    """Assert that ``text`` is visible on screen.
+
+    Kiểm tra ``text`` hiển thị trên màn hình.
+    """
     return wait_for_text(driver, text, exact=exact, timeout=timeout)

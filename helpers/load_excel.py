@@ -1,4 +1,7 @@
-"""Load pytest test data from Excel workbooks (row 1 = headers, row 2+ = data)."""
+"""Load pytest test data from Excel workbooks (row 1 = headers, row 2+ = data).
+
+Nạp dữ liệu test pytest từ workbook Excel (hàng 1 = header, hàng 2+ = dữ liệu).
+"""
 
 from __future__ import annotations
 
@@ -22,6 +25,15 @@ def load_excel(path: str | Path, *, data_only: bool = True) -> WorkbookData:
 
     Returns:
         ``{sheet_name: [{"field": value, ...}, ...], ...}``
+
+    Nạp mọi sheet trong file Excel thành danh sách dict theo hàng.
+
+    Định dạng mỗi sheet:
+      - Hàng 1: tên cột (header)
+      - Hàng 2 trở đi: dữ liệu test đến hàng không trống cuối cùng
+
+    Trả về:
+        ``{tên_sheet: [{"field": value, ...}, ...], ...}``
     """
     path = Path(path)
     if not path.is_file():
@@ -39,6 +51,11 @@ def load_sheet(worksheet: Worksheet | str | Path, sheet: str | None = None) -> S
 
     Pass either a :class:`Worksheet`, or a file path plus optional ``sheet`` name
     (defaults to the active sheet).
+
+    Nạp một sheet thành danh sách dict theo hàng.
+
+    Truyền :class:`Worksheet`, hoặc đường dẫn file kèm tên ``sheet`` tùy chọn
+    (mặc định là sheet đang active).
     """
     if isinstance(worksheet, (str, Path)):
         path = Path(worksheet)

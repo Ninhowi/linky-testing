@@ -1,4 +1,7 @@
-"""Sign-up page objects (single registration form, then OTP)."""
+"""Sign-up page objects (single registration form, then OTP).
+
+Page object đăng ký (một form đăng ký, rồi OTP).
+"""
 
 from __future__ import annotations
 
@@ -12,7 +15,10 @@ _SIGN_UP_PATH = "/sign-up"
 
 
 class SignUpFormStep(ClerkFormPage):
-    """Registration form with email, password, and legal fields visible together."""
+    """Registration form with email, password, and legal fields visible together.
+
+    Form đăng ký với email, password và trường điều khoản hiển thị cùng lúc.
+    """
 
     def __init__(self, driver: WebDriver) -> None:
         super().__init__(driver)
@@ -45,7 +51,10 @@ class SignUpFormStep(ClerkFormPage):
         *,
         accept_legal: bool = False,
     ) -> None:
-        """Fill any subset of the visible registration fields."""
+        """Fill any subset of the visible registration fields.
+
+        Điền bất kỳ tập con nào của các trường đăng ký hiển thị.
+        """
         if email:
             self.fill_email(email)
         if password:
@@ -84,7 +93,10 @@ class SignUpFormStep(ClerkFormPage):
 
 
 class SignUpPage(ClerkFormPage):
-    """Sign-up flow: one registration form, then OTP verification."""
+    """Sign-up flow: one registration form, then OTP verification.
+
+    Luồng đăng ký: một form đăng ký, rồi xác minh OTP.
+    """
 
     def __init__(self, driver: WebDriver) -> None:
         super().__init__(driver)

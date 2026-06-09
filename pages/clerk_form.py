@@ -1,4 +1,7 @@
-"""Shared Clerk auth form steps (identifier, password, OTP, legal)."""
+"""Shared Clerk auth form steps (identifier, password, OTP, legal).
+
+Các bước form xác thực Clerk dùng chung (identifier, password, OTP, legal).
+"""
 
 from __future__ import annotations
 
@@ -50,7 +53,10 @@ _UI_SETTLE_SEC = 0.4
 
 
 def password_needs_js_fill(password: str) -> bool:
-    """Use the React-compatible setter when ChromeDriver cannot type the password."""
+    """Use the React-compatible setter when ChromeDriver cannot type the password.
+
+    Dùng setter tương thích React khi ChromeDriver không gõ được mật khẩu.
+    """
     return any(ord(ch) > 0xFFFF for ch in password)
 
 
@@ -86,7 +92,10 @@ def _clerk_input(
 
 
 class ClerkFormPage:
-    """Base page object for Clerk forms with shared assertions and actions."""
+    """Base page object for Clerk forms with shared assertions and actions.
+
+    Page object cơ sở cho form Clerk với assertion và thao tác dùng chung.
+    """
 
     def __init__(self, driver: WebDriver) -> None:
         self._driver = driver

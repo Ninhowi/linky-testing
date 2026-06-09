@@ -1,4 +1,7 @@
-"""Login helpers for authenticated profile tests."""
+"""Login helpers for authenticated profile tests.
+
+Hàm hỗ trợ đăng nhập cho test profile đã xác thực.
+"""
 
 from __future__ import annotations
 
@@ -15,7 +18,10 @@ _LOGIN_WAIT_TIMEOUT_SEC = 25.0
 
 
 def require_env_credentials() -> tuple[str, str, str | None]:
-    """Return ``(email, password, otp)`` from env or skip the test."""
+    """Return ``(email, password, otp)`` from env or skip the test.
+
+    Trả về ``(email, password, otp)`` từ env hoặc bỏ qua test.
+    """
     email = os.environ.get("USER_EMAIL", "").strip()
     password = os.environ.get("USER_PASSWORD", "").strip()
     otp_raw = os.environ.get("USER_OTP", "").strip()
@@ -27,7 +33,10 @@ def require_env_credentials() -> tuple[str, str, str | None]:
 
 
 def login_with_env_credentials(driver: WebDriver, base_url: str) -> None:
-    """Sign in using ``USER_EMAIL``, ``USER_PASSWORD``, and optional ``USER_OTP``."""
+    """Sign in using ``USER_EMAIL``, ``USER_PASSWORD``, and optional ``USER_OTP``.
+
+    Đăng nhập bằng ``USER_EMAIL``, ``USER_PASSWORD`` và ``USER_OTP`` tùy chọn.
+    """
     email, password, otp = require_env_credentials()
     page = SignInPage.open(driver, base_url)
     page.identifier.submit_email(email)

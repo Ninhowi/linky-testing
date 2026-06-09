@@ -29,8 +29,8 @@ packages = ["helpers", "pages"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-  "sign_in: sign-in auth flow tests",
-  "sign_up: sign-up auth flow tests",
-  "reset_password: reset-password auth flow tests",
-  "profile: user profile page tests (requires USER_EMAIL / USER_PASSWORD)",
+  "sign_in: sign-in auth flow tests / test luồng đăng nhập",
+  "sign_up: sign-up auth flow tests / test luồng đăng ký",
+  "reset_password: reset-password auth flow tests / test luồng đặt lại mật khẩu",
+  "profile: user profile page tests (requires USER_EMAIL / USER_PASSWORD) / test trang hồ sơ (cần USER_EMAIL / USER_PASSWORD)",
 ]

@@ -9,7 +9,14 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
-from helpers.auth_session import login_with_env_credentials
+from helpers.auth_session import (
+    AuthState,
+    capture_auth_state,
+    login_with_env_credentials,
+    require_env_credentials,
+    restore_auth_state,
+    wait_until_authenticated,
+)
 from helpers.env import load_env
 from pages.user_profile import UserProfilePage
 
@@ -59,13 +66,25 @@ def driver():
     drv.quit()
 
 
-@pytest.fixture(scope="module")
-def profile_driver(base_url: str):
-    """One logged-in browser session shared by all profile tests in the module."""
+@pytest.fixture(scope="session")
+def auth_state(base_url: str) -> AuthState:
+    """Sign in once per test run and save cookies + web storage for reuse."""
+    require_env_credentials()
     drv = _create_driver()
     try:
         login_with_env_credentials(drv, base_url)
-        drv.get(f"{base_url.rstrip('/')}{UserProfilePage.PATH}")
+        return capture_auth_state(drv, base_url)
+    finally:
+        drv.quit()
+
+
+@pytest.fixture(scope="module")
+def profile_driver(base_url: str, auth_state: AuthState):
+    """Browser session restored from ``auth_state``, shared across profile tests."""
+    drv = _create_driver()
+    try:
+        restore_auth_state(drv, auth_state)
+        wait_until_authenticated(drv, base_url, path=UserProfilePage.PATH)
         UserProfilePage.wait_until_ready(drv)
         yield drv
     finally:

@@ -2,7 +2,6 @@ from .clerk_form import ClerkFormPage, IdentifierStep, LegalStep, OTPStep, Passw
 from .sign_in import (
     ForgotPasswordPage,
     IdentifierPage,
-    OTPPage,
     PasswordPage,
     SignInPage,
 )
@@ -15,7 +14,6 @@ __all__ = [
     "IdentifierPage",
     "IdentifierStep",
     "LegalStep",
-    "OTPPage",
     "OTPStep",
     "ForgotPasswordPage",
     "PasswordPage",

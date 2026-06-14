@@ -44,6 +44,15 @@ class SignUpFormStep(ClerkFormPage):
     def accept_legal(self) -> None:
         self._legal.accept_legal()
 
+    def clear_fields(self) -> None:
+        """Reset email, password, and legal checkbox before filling the next case.
+
+        Xóa email, password và bỏ chọn checkbox điều khoản trước case tiếp theo.
+        """
+        self._email.clear_email()
+        self._password.clear_password()
+        self._legal.clear_legal()
+
     def fill(
         self,
         email: str | None = None,
@@ -55,6 +64,7 @@ class SignUpFormStep(ClerkFormPage):
 
         Điền bất kỳ tập con nào của các trường đăng ký hiển thị.
         """
+        self.clear_fields()
         if email:
             self.fill_email(email)
         if password:

@@ -7,30 +7,28 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import Callable
 
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.support.ui import WebDriverWait
 
-from helpers.locators import by_role, first_visible_css, scoped_css
-from helpers.waits import DEFAULT_TIMEOUT_SEC, wait_for_clerk_ready, wait_hidden, wait_visible
-
-_CLERK_SCOPE = '[data-clerk-ready="true"] '
-_EMAIL_FIELDS = (
-    'input[name="identifier"], input#identifier, '
-    'input[name="emailAddress"], input#emailAddress, '
-    'input[type="email"]'
+from helpers.locators import by_role, first_visible_css
+from helpers.waits import (
+    DEFAULT_TIMEOUT_SEC,
+    wait_for_clerk_ready,
+    wait_hidden,
+    wait_until_element_displayed,
+    wait_visible,
 )
-_PASSWORD_FIELDS = 'input[name="password"], input#password, input[type="password"]'
-_LEGAL_FIELDS = 'input[name="legalAccepted"], input#legalAccepted-field'
-_OTP_INPUT_CSS = (
-    'input[autocomplete="one-time-code"], input[name*="code"], '
-    'input[name*="otp"], input[inputmode="numeric"]'
+from pages.selectors.clerk import (
+    _EMAIL_FIELDS,
+    _EMAIL_INPUT_SCOPED_CSS,
+    _LEGAL_FIELDS,
+    _LEGAL_INPUT_SCOPED_CSS,
+    _OTP_INPUT_LOCATOR,
+    _PASSWORD_FIELDS,
+    _PASSWORD_INPUT_SCOPED_CSS,
 )
-_EMAIL_INPUT_SCOPED_CSS = scoped_css(_CLERK_SCOPE, _EMAIL_FIELDS)
-_PASSWORD_INPUT_SCOPED_CSS = scoped_css(_CLERK_SCOPE, _PASSWORD_FIELDS)
-_LEGAL_INPUT_SCOPED_CSS = scoped_css(_CLERK_SCOPE, _LEGAL_FIELDS)
-_OTP_INPUT_LOCATOR = ("css selector", _OTP_INPUT_CSS)
 _CONTINUE = re.compile(r"continue", re.I)
 _FORGOT_PASSWORD = re.compile(r"forgot password", re.I)
 
@@ -49,7 +47,35 @@ element.dispatchEvent(new Event('input', { bubbles: true }));
 element.dispatchEvent(new Event('change', { bubbles: true }));
 """
 
+_CLEAR_INPUT_VALUE_JS = """
+const element = arguments[0];
+const prototype = Object.getPrototypeOf(element);
+const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
+const setter = descriptor && descriptor.set;
+if (setter) {
+    setter.call(element, '');
+} else {
+    element.value = '';
+}
+element.dispatchEvent(new Event('input', { bubbles: true }));
+element.dispatchEvent(new Event('change', { bubbles: true }));
+"""
+
 _UI_SETTLE_SEC = 0.4
+
+
+def clear_input_value(driver: WebDriver, inp: WebElement) -> None:
+    """Clear a React-controlled input before filling a new value.
+
+    Xóa input điều khiển bởi React trước khi điền giá trị mới.
+    """
+    driver.execute_script("arguments[0].focus(); arguments[0].select();", inp)
+    try:
+        inp.clear()
+    except Exception:
+        pass
+    driver.execute_script(_CLEAR_INPUT_VALUE_JS, inp)
+    time.sleep(_UI_SETTLE_SEC)
 
 
 def password_needs_js_fill(password: str) -> bool:
@@ -65,16 +91,12 @@ def fill_password_input(
     inp: WebElement,
     password: str,
 ) -> None:
-    inp.clear()
+    clear_input_value(driver, inp)
     if password_needs_js_fill(password):
         driver.execute_script(_SET_INPUT_VALUE_JS, inp, password)
     else:
         inp.send_keys(password)
     time.sleep(_UI_SETTLE_SEC)
-
-
-def _email_local_part(email: str) -> str:
-    return email.split("@", 1)[0]
 
 
 def _clerk_input(
@@ -103,6 +125,11 @@ class ClerkFormPage:
     def continue_button(self) -> WebElement:
         return by_role(self._driver, "button", name=_CONTINUE)
 
+    def submit_with_continue(self, fill: Callable[[], None] | None = None) -> None:
+        if fill is not None:
+            fill()
+        self.continue_button().click()
+
 
 class IdentifierStep(ClerkFormPage):
     def email_input(self) -> WebElement:
@@ -114,9 +141,12 @@ class IdentifierStep(ClerkFormPage):
             name=re.compile(r"identifier|emailAddress|email address", re.I),
         )
 
+    def clear_email(self) -> None:
+        clear_input_value(self._driver, self.email_input())
+
     def fill_email(self, email: str) -> None:
         inp = self.email_input()
-        inp.clear()
+        clear_input_value(self._driver, inp)
         if " " in email:
             self._driver.execute_script(_SET_INPUT_VALUE_JS, inp, email)
             return
@@ -160,6 +190,9 @@ class PasswordStep(ClerkFormPage):
             name=re.compile(r"password", re.I),
         )
 
+    def clear_password(self) -> None:
+        clear_input_value(self._driver, self.password_input())
+
     def fill_password(self, password: str) -> None:
         fill_password_input(self._driver, self.password_input(), password)
 
@@ -180,8 +213,15 @@ class LegalStep(ClerkFormPage):
             name=re.compile(r"legalAccepted", re.I),
         )
 
+    def clear_legal(self) -> None:
+        inp = self.legal_input()
+        if inp.is_selected():
+            inp.click()
+
     def accept_legal(self) -> None:
-        self.legal_input().click()
+        inp = self.legal_input()
+        if not inp.is_selected():
+            inp.click()
 
     def wait_until_visible(self, timeout: float | None = None) -> None:
         wait_visible(self._driver, ("css selector", _LEGAL_INPUT_SCOPED_CSS), timeout)
@@ -202,23 +242,18 @@ class OTPStep(ClerkFormPage):
             pass
         return by_role(self._driver, "textbox", name=_OTP_NAME)
 
+    def clear_otp(self) -> None:
+        clear_input_value(self._driver, self.otp_input())
+
     def fill_otp(self, otp: str, *, delay: float = 0.1) -> None:
         inp = self.otp_input()
-        inp.clear()
+        clear_input_value(self._driver, inp)
         for char in otp:
             inp.send_keys(char)
             time.sleep(delay)
 
     def wait_until_visible(self, timeout: float | None = None) -> None:
-        t = timeout or DEFAULT_TIMEOUT_SEC
-
-        def _ready(_driver: WebDriver) -> bool:
-            try:
-                return self.otp_input().is_displayed()
-            except Exception:
-                return False
-
-        WebDriverWait(self._driver, t).until(_ready)
+        wait_until_element_displayed(self._driver, self.otp_input, timeout)
 
     def wait_until_hidden(self, timeout: float | None = None) -> None:
         wait_hidden(self._driver, _OTP_INPUT_LOCATOR, timeout)

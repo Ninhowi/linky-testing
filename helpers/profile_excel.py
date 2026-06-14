@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from helpers.auth_excel import cell_value
+from helpers.auth_excel import cell_input, cell_value, message_lower
 from helpers.load_excel import TestRow
 
 PROFILE_SECTIONS = frozenset({"profile-header", "bio", "personal", "interests"})
@@ -37,11 +37,8 @@ def profile_cell_text(value: object) -> str | None:
         return value.strftime("%d/%m/%Y")
     if isinstance(value, date):
         return value.strftime("%d/%m/%Y")
-    if isinstance(value, float) and value.is_integer():
-        return str(int(value))
-    if isinstance(value, int):
-        return str(value)
-    return str(value)
+    text = cell_input(value)
+    return text if text else None
 
 
 def _case_has_value(case: TestRow, column: str) -> bool:
@@ -49,7 +46,7 @@ def _case_has_value(case: TestRow, column: str) -> bool:
 
 
 def _section_from_message(case: TestRow) -> str | None:
-    message = (cell_value(case.get("message")) or "").lower()
+    message = message_lower(case)
     if not message:
         return None
     if "bio" in message:
@@ -103,7 +100,7 @@ def fields_to_fill(case: TestRow, section: str) -> list[tuple[str, str]]:
             continue
         fields.append((column, profile_cell_text(case[column]) or ""))
 
-    message = (cell_value(case.get("message")) or "").lower()
+    message = message_lower(case)
     if (
         section == "profile-header"
         and "first name cannot be empty" in message

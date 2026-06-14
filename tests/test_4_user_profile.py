@@ -46,14 +46,14 @@ def _run_profile_flow(page: UserProfilePage, case: TestRow) -> None:
     ids=[case_id("profile", i, row) for i, row in enumerate(PROFILE_CASES)],
 )
 def test_profile_from_excel(
-    profile_driver, base_url: str, profile_case: TestRow
+    credentials_driver, base_url: str, profile_case: TestRow
 ) -> None:
     """Each ``profile`` sheet row: edit section, fill fields, save, assert outcome.
 
     Mỗi dòng sheet ``profile``: sửa section, điền trường, lưu, kiểm tra kết quả.
     """
-    page = UserProfilePage(profile_driver)
-    profile_driver.get(f"{base_url.rstrip('/')}{UserProfilePage.PATH}")
-    page.wait_until_ready(profile_driver)
+    page = UserProfilePage(credentials_driver)
+    credentials_driver.get(f"{base_url.rstrip('/')}{UserProfilePage.PATH}")
+    page.wait_until_ready(credentials_driver)
     _run_profile_flow(page, profile_case)
     assert_profile_outcome(page, profile_case)

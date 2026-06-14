@@ -15,8 +15,7 @@ from helpers.auth_excel import (
     cell_value,
     load_sheet_cases,
     message_lower,
-    otp_is_complete,
-    otp_text,
+    run_otp_step,
     sign_up_assert_messages,
     sign_up_email,
     sign_up_steps,
@@ -38,12 +37,7 @@ def _run_sign_up_flow(page: SignUpPage, case: TestRow) -> None:
     page.form.submit()
 
     if steps["otp"]:
-        page.otp.wait_until_visible()
-        otp = otp_text(case.get("otp"))
-        if otp:
-            page.otp.fill_otp(otp)
-        if not otp_is_complete(otp):
-            page.form.continue_button().click()
+        run_otp_step(page.otp, cell_value(case.get("otp")))
 
 
 def _field_for_assertion(page: SignUpPage, case: TestRow) -> WebElement:

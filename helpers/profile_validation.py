@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 
-from helpers.auth_excel import cell_text
+from helpers.auth_excel import cell_text, message_lower
 from helpers.load_excel import TestRow
 from helpers.profile_excel import SECTION_FIELDS, fields_to_fill, section_name
 from pages.user_profile import UserProfilePage
@@ -67,7 +67,7 @@ def profile_expects_field_error(case: TestRow) -> bool:
 
     Trả về dòng có mong đợi kết quả xác thực (trường và/hoặc toast) hay không.
     """
-    message = cell_text(case.get("message")).lower()
+    message = message_lower(case)
     return any(hint in message for hint in _VALIDATION_HINTS)
 
 
@@ -76,7 +76,7 @@ def profile_expects_inline_field_error(case: TestRow) -> bool:
 
     Trả về dòng có mong đợi lỗi dưới trường form (không chỉ toast) hay không.
     """
-    message = cell_text(case.get("message")).lower()
+    message = message_lower(case)
     if not profile_expects_field_error(case):
         return False
     if _COMBOBOX_NOT_FOUND_MESSAGE.search(message):
@@ -89,7 +89,7 @@ def profile_field_for_message(case: TestRow) -> str | None:
 
     Chọn cột có lỗi inline khả năng cao nhất liên quan đến ``message``.
     """
-    message = cell_text(case.get("message")).lower()
+    message = message_lower(case)
     section = section_name(case)
 
     if "invalid characters" in message:
@@ -153,7 +153,7 @@ def profile_expects_toast(case: TestRow) -> bool:
 
     Trả về có mong đợi toast hay không (một số dòng chỉ có lỗi trường).
     """
-    message = cell_text(case.get("message")).lower()
+    message = message_lower(case)
     if not message:
         return False
     if profile_expects_inline_field_error(case) and "bio must" in message and "300" in message:

@@ -9,7 +9,12 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
-from helpers.auth_session import login_with_env_credentials, require_env_credentials
+from helpers.auth_session import (
+    Credentials,
+    login_with_credentials,
+    login_with_env_credentials,
+    require_env_credentials,
+)
 from helpers.env import load_env
 
 load_env()
@@ -53,17 +58,21 @@ def driver():
     drv.quit()
 
 @pytest.fixture
-def profile_driver(base_url: str):
+def credentials_driver(base_url: str, credentials: Credentials | None = None):
     """Fresh browser that signs in before each profile test.
 
     Trình duyệt mới, đăng nhập trước mỗi test profile.
     """
-    require_env_credentials()
+    if credentials is None:
+        require_env_credentials()
+    else:
+        credentials.assert_valid()
     drv = _create_driver()
     try:
-        login_with_env_credentials(drv, base_url)
+        if credentials is None:
+            login_with_env_credentials(drv, base_url)
+        else:
+            login_with_credentials(drv, base_url, credentials)
         yield drv
     finally:
         drv.quit()
-
-

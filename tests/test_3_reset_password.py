@@ -8,21 +8,17 @@ from __future__ import annotations
 import pytest
 from selenium.webdriver.remote.webelement import WebElement
 
-from helpers.auth_excel import (
+from helpers.auth.excel import (
     assert_auth_outcome,
-    case_id,
-    cell_value,
-    load_sheet_cases,
-    log_out_all_devices,
-    message_lower,
-    otp_is_complete,
-    otp_text,
-    password_text,
     reset_password_assert_messages,
     reset_password_should_submit,
     reset_password_steps,
+    run_identifier_step,
+    run_otp_step,
+    run_password_step,
 )
-from helpers.load_excel import TestRow
+from helpers.excel.cells import case_id, cell_value, excel_flag, load_sheet_cases, message_lower
+from helpers.excel.load import TestRow
 from pages.reset_password import ResetPasswordPage
 
 pytestmark = pytest.mark.reset_password
@@ -37,24 +33,19 @@ def _run_sign_in_through_otp(page: ResetPasswordPage, case: TestRow) -> None:
     """
     steps = reset_password_steps(case)
     email = cell_value(case.get("email"))
-    otp = otp_text(case.get("otp"))
 
-    if email:
-        page.identifier.submit_email(email)
-    else:
-        page.identifier.submit_empty()
+    run_identifier_step(page.identifier, email)
 
     if steps["password"]:
-        page.password.wait_until_visible()
-        page.password.click_forgot_password()
-        page.forgot.click_reset_your_password()
+        run_password_step(
+            page.password,
+            None,
+            forgot=True,
+            on_forgot=page.forgot.click_reset_your_password,
+        )
 
     if steps["otp"]:
-        page.otp.wait_until_visible()
-        if otp:
-            page.otp.fill_otp(otp)
-        if not otp_is_complete(otp):
-            page.otp.continue_button().click()
+        run_otp_step(page.otp, cell_value(case.get("otp")))
 
 
 def _run_reset_password_flow(page: ResetPasswordPage, case: TestRow) -> None:
@@ -64,10 +55,10 @@ def _run_reset_password_flow(page: ResetPasswordPage, case: TestRow) -> None:
 
     if steps["reset"]:
         page.reset.wait_until_visible()
-        new_password = password_text(case.get("new_password"))
-        confirm_password = password_text(case.get("confirm_password"))
+        new_password = cell_value(case.get("new_password"))
+        confirm_password = cell_value(case.get("confirm_password"))
         page.reset.fill_passwords(new_password, confirm_password)
-        sign_out = log_out_all_devices(case)
+        sign_out = excel_flag(case, "log_out")
         if sign_out is not None:
             page.reset.set_sign_out_all_devices(sign_out)
         if reset_password_should_submit(case):
@@ -82,13 +73,13 @@ def _field_for_assertion(page: ResetPasswordPage, case: TestRow) -> WebElement:
     message = message_lower(case)
     steps = reset_password_steps(case)
 
-    if "code" in message or (steps["otp"] and otp_text(case.get("otp"))):
+    if "code" in message or (steps["otp"] and cell_value(case.get("otp"))):
         return page.otp.otp_input()
     if "match" in message or (
-        steps["reset"] and password_text(case.get("confirm_password"))
+        steps["reset"] and cell_value(case.get("confirm_password"))
     ):
         return page.reset.confirm_password_input()
-    if steps["reset"] and password_text(case.get("new_password")):
+    if steps["reset"] and cell_value(case.get("new_password")):
         return page.reset.new_password_input()
     return page.otp.otp_input()
 

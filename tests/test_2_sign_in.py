@@ -9,17 +9,15 @@ import pytest
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 
-from helpers.auth_excel import (
+from helpers.auth.excel import (
     assert_auth_outcome,
-    case_id,
-    cell_value,
-    load_sheet_cases,
-    message_lower,
-    otp_is_complete,
-    otp_text,
+    run_identifier_step,
+    run_otp_step,
+    run_password_step,
     sign_in_steps,
 )
-from helpers.load_excel import TestRow
+from helpers.excel.cells import case_id, cell_value, load_sheet_cases, message_lower
+from helpers.excel.load import TestRow
 from pages.sign_in import SignInPage
 
 pytestmark = pytest.mark.sign_in
@@ -31,26 +29,14 @@ def _run_login_flow(page: SignInPage, case: TestRow) -> None:
     steps = sign_in_steps(case)
     email = cell_value(case.get("email"))
     password = cell_value(case.get("password"))
-    otp = otp_text(case.get("otp"))
 
-    if email:
-        page.identifier.submit_email(email)
-    else:
-        page.identifier.submit_empty()
+    run_identifier_step(page.identifier, email)
 
     if steps["password"]:
-        page.password.wait_until_visible()
-        if password:
-            page.password.submit_password(password)
-        else:
-            page.password.submit_empty()
+        run_password_step(page.password, password)
 
     if steps["otp"]:
-        page.otp.wait_until_visible()
-        if otp:
-            page.otp.fill_otp(otp)
-        if not otp_is_complete(otp):
-            page.otp.continue_button().click()
+        run_otp_step(page.otp, cell_value(case.get("otp")))
 
 
 def _field_for_assertion(page: SignInPage, case: TestRow) -> WebElement:
@@ -61,7 +47,7 @@ def _field_for_assertion(page: SignInPage, case: TestRow) -> WebElement:
     message = message_lower(case)
     steps = sign_in_steps(case)
 
-    if "code" in message or (steps["otp"] and otp_text(case.get("otp"))):
+    if "code" in message or (steps["otp"] and cell_value(case.get("otp"))):
         return page.otp.otp_input()
     if "password" in message or (steps["password"] and cell_value(case.get("password"))):
         return page.password.password_input()

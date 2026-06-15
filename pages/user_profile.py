@@ -20,10 +20,25 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 
-from helpers.locators import wait_for_text
-from helpers.validation import _messages_match
-from helpers.waits import DEFAULT_TIMEOUT_SEC, wait_present
+from helpers.auth.validation import _messages_match
+from helpers.browser.locators import wait_for_text
+from helpers.browser.waits import DEFAULT_TIMEOUT_SEC, wait_present
 from pages.clerk_form import _SET_INPUT_VALUE_JS
+from pages.selectors.user_profile import (
+    _ARIA_FIELDS,
+    _COMBOBOX_CLOSE_SELECTORS,
+    _COMBOBOX_EMPTY_SELECTORS,
+    _COMBOBOX_INPUT_SELECTOR,
+    _COMBOBOX_OPTION_SELECTORS,
+    _COMBOBOX_POPOVER_INPUT_SELECTOR,
+    _COMBOBOX_POPOVER_SELECTOR,
+    _FIELD_ERROR_CONTAINER_XPATH,
+    _FIELD_ERROR_SELECTOR,
+    _SECTION_ANCESTOR_XPATH,
+    action_selector,
+    aria_field_selector,
+    section_root_selector,
+)
 
 _PROFILE_SECTIONS = ("profile-header", "bio", "personal", "interests")
 _SAVE_WAIT_TIMEOUT_SEC = 15.0
@@ -32,17 +47,8 @@ _TOAST_ASSERT_TIMEOUT_SEC = 2.0
 _FIELD_ERROR_TIMEOUT_SEC = 5.0
 _FIELD_ERROR_POLL_SEC = 0.05
 _UI_SETTLE_SEC = 0.3
-_FIELD_ERROR_SELECTOR = ".text-destructive"
 _CHAR_COUNTER_PATTERN = re.compile(r"^\d+/\d+$")
 _COMBOBOX_NOT_FOUND_PATTERN = re.compile(r"no .+ found\.?", re.I)
-_COMBOBOX_EMPTY_SELECTORS = ("[cmdk-empty]", "[data-slot='command-empty']")
-
-_ARIA_FIELDS: dict[str, str] = {
-    "first_name": "First name",
-    "last_name": "Last name",
-    "bio": "Bio",
-    "date": "Select date",
-}
 
 _COMBOBOX_COLUMNS = frozenset({"country", "gender", "interest"})
 _COMBOBOX_SEARCH_HINTS: dict[str, tuple[str, ...]] = {
@@ -70,10 +76,6 @@ if (setter) {
 element.dispatchEvent(new Event('input', { bubbles: true }));
 element.dispatchEvent(new Event('change', { bubbles: true }));
 """
-
-
-def _action_selector(section: str, action: str) -> str:
-    return f'[name="{action}-{section}"]'
 
 
 def _button_enabled(button: WebElement) -> bool:
@@ -116,7 +118,7 @@ class ProfileSection:
     def root(self) -> WebElement:
         elements = self._driver.find_elements(
             By.CSS_SELECTOR,
-            f'div[class*="group/{self._name}"]',
+            section_root_selector(self._name),
         )
         if elements:
             return elements[0]
@@ -127,14 +129,14 @@ class ProfileSection:
                 continue
             return button.find_element(
                 By.XPATH,
-                "./ancestor::div[contains(@class, 'group/')][1]",
+                _SECTION_ANCESTOR_XPATH,
             )
         raise TimeoutException(f"No root found for profile section {self._name!r}")
 
     def _find_action_button(self, action: str) -> WebElement:
         elements = self._driver.find_elements(
             By.CSS_SELECTOR,
-            _action_selector(self._name, action),
+            action_selector(self._name, action),
         )
         if elements:
             return elements[0]
@@ -154,7 +156,7 @@ class ProfileSection:
     def _section_roots(self) -> list[WebElement]:
         roots = self._driver.find_elements(
             By.CSS_SELECTOR,
-            f'div[class*="group/{self._name}"]',
+            section_root_selector(self._name),
         )
         return roots
 
@@ -165,7 +167,7 @@ class ProfileSection:
         """
         if column in _ARIA_FIELDS:
             label = _ARIA_FIELDS[column]
-            selector = f"input[aria-label='{label}'], textarea[aria-label='{label}']"
+            selector = aria_field_selector(label)
             for element in self._driver.find_elements(By.CSS_SELECTOR, selector):
                 if element.is_displayed():
                     return element
@@ -208,7 +210,7 @@ class ProfileSection:
             )
 
         for xpath in (
-            "./ancestor::div[contains(@class, 'space-y')][1]",
+            _FIELD_ERROR_CONTAINER_XPATH,
             "./parent::*",
         ):
             try:
@@ -258,7 +260,7 @@ class ProfileSection:
         return errors[0]
 
     def _aria_input(self, label: str) -> WebElement:
-        selector = f"input[aria-label='{label}'], textarea[aria-label='{label}']"
+        selector = aria_field_selector(label)
         for element in self.root.find_elements(By.CSS_SELECTOR, selector):
             if element.is_displayed():
                 return element
@@ -302,7 +304,7 @@ class ProfileSection:
         raise TimeoutException(f"No combobox trigger for {column!r} in {self._name!r}")
 
     def _cmdk_search_input(self, *, placeholder_hint: str) -> WebElement:
-        for element in self._driver.find_elements(By.CSS_SELECTOR, "input[cmdk-input]"):
+        for element in self._driver.find_elements(By.CSS_SELECTOR, _COMBOBOX_INPUT_SELECTOR):
             if element.is_displayed():
                 return element
         for element in self._driver.find_elements(By.CSS_SELECTOR, "input"):
@@ -332,24 +334,22 @@ class ProfileSection:
 
         for popover in self._driver.find_elements(
             By.CSS_SELECTOR,
-            "[data-radix-popper-content-wrapper]",
+            _COMBOBOX_POPOVER_SELECTOR,
         ):
             try:
                 if not popover.is_displayed():
                     continue
             except StaleElementReferenceException:
                 continue
-            for element in popover.find_elements(By.CSS_SELECTOR, "input[cmdk-input], input"):
+            for element in popover.find_elements(
+                By.CSS_SELECTOR, _COMBOBOX_POPOVER_INPUT_SELECTOR
+            ):
                 if self._is_usable_search_input(element):
                     return element
         return None
 
     def _close_combobox(self) -> None:
-        for selector in (
-            "[data-radix-popper-content-wrapper]",
-            "[cmdk-root]",
-            "[role='listbox']",
-        ):
+        for selector in _COMBOBOX_CLOSE_SELECTORS:
             popovers = [
                 element
                 for element in self._driver.find_elements(By.CSS_SELECTOR, selector)
@@ -383,7 +383,7 @@ class ProfileSection:
 
     def _try_click_listbox_option(self, value: str) -> bool:
         value_lower = value.strip().lower()
-        for selector in ("[role='option']", "[cmdk-item]"):
+        for selector in _COMBOBOX_OPTION_SELECTORS:
             for option in self._driver.find_elements(By.CSS_SELECTOR, selector):
                 try:
                     if not option.is_displayed():
@@ -535,7 +535,7 @@ class UserProfilePage:
     def wait_until_ready(cls, driver: WebDriver, timeout: float | None = None) -> None:
         t = timeout or DEFAULT_TIMEOUT_SEC
         for section in _PROFILE_SECTIONS:
-            locator = (By.CSS_SELECTOR, _action_selector(section, "edit"))
+            locator = (By.CSS_SELECTOR, action_selector(section, "edit"))
             try:
                 wait_present(driver, locator, t)
             except TimeoutException as exc:
@@ -579,7 +579,7 @@ class UserProfilePage:
                 return True
             buttons = self._driver.find_elements(
                 By.CSS_SELECTOR,
-                _action_selector(name, "save"),
+                action_selector(name, "save"),
             )
             if not buttons:
                 return True

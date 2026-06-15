@@ -19,9 +19,9 @@ dependencies = [
 ]
 
 [project.scripts]
-ensure-cloak = "helpers.ensure_cloak:main"
-test = "helpers.run_test:main"
-allure-report = "helpers.run_allure:main"
+ensure-cloak = "helpers.runtime.ensure_cloak:main"
+test = "helpers.runtime.run_test:main"
+allure-report = "helpers.runtime.run_allure:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["helpers", "pages"]
@@ -33,4 +33,8 @@ markers = [
   "sign_up: sign-up auth flow tests / test luồng đăng ký",
   "reset_password: reset-password auth flow tests / test luồng đặt lại mật khẩu",
   "profile: user profile page tests (requires USER_EMAIL / USER_PASSWORD) / test trang hồ sơ (cần USER_EMAIL / USER_PASSWORD)",
+  "call: /call page tests (requires media flags and authenticated users) / test trang /call",
+  "call_smoke: single-profile /call smoke tests / test smoke một profile",
+  "call_integration: two-profile /call integration tests / test integration hai profile",
+  "call_in_call_chat: parametrized in-call chat tests (shared matched pair) / test chat in_call dùng chung một cặp ghép",
 ]

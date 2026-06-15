@@ -12,26 +12,26 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 
-from helpers.locators import by_role, first_visible_css, scoped_css
-from helpers.waits import DEFAULT_TIMEOUT_SEC, wait_hidden
-from pages.clerk_form import ClerkFormPage, fill_password_input
+from helpers.browser.locators import by_role, first_visible_css
+from helpers.browser.waits import DEFAULT_TIMEOUT_SEC, wait_hidden, wait_until_element_displayed
+from pages.clerk_form import (
+    ClerkFormPage,
+    _UI_SETTLE_SEC,
+    _clerk_input,
+    fill_password_input,
+)
+from pages.selectors.clerk import (
+    _CONFIRM_PASSWORD_FIELDS,
+    _CONFIRM_PASSWORD_SCOPED,
+    _NEW_PASSWORD_FIELDS,
+    _NEW_PASSWORD_SCOPED,
+    _SIGN_OUT_FIELDS,
+    _SIGN_OUT_SCOPED,
+    _SUBMIT_BUTTON_CSS,
+)
 from pages.sign_in import SignInPage
 
-_CLERK_SCOPE = '[data-clerk-ready="true"] '
-_NEW_PASSWORD_FIELDS = 'input[name="password"], input#password-field'
-_CONFIRM_PASSWORD_FIELDS = (
-    'input[name="confirmPassword"], input#confirmPassword-field'
-)
-_SIGN_OUT_FIELDS = 'input[name="signOutOfOtherSessions"], input#signOutOfOtherSessions-field'
-_NEW_PASSWORD_SCOPED = scoped_css(_CLERK_SCOPE, _NEW_PASSWORD_FIELDS)
-_CONFIRM_PASSWORD_SCOPED = scoped_css(_CLERK_SCOPE, _CONFIRM_PASSWORD_FIELDS)
-_SIGN_OUT_SCOPED = scoped_css(_CLERK_SCOPE, _SIGN_OUT_FIELDS)
 _SUBMIT_RESET = re.compile(r"reset password", re.I)
-_SUBMIT_BUTTON_CSS = (
-    '[data-localization-key="signIn.resetPassword.formButtonPrimary"], '
-    '[data-localization-key="taskResetPassword.formButtonPrimary"]'
-)
-_UI_SETTLE_SEC = 0.4
 
 
 class ResetPasswordFormStep(ClerkFormPage):
@@ -41,30 +41,29 @@ class ResetPasswordFormStep(ClerkFormPage):
     """
 
     def new_password_input(self) -> WebElement:
-        el = first_visible_css(
-            self._driver, _NEW_PASSWORD_SCOPED, _NEW_PASSWORD_FIELDS
+        return _clerk_input(
+            self._driver,
+            _NEW_PASSWORD_SCOPED,
+            _NEW_PASSWORD_FIELDS,
+            role="textbox",
+            name=re.compile(r"new password", re.I),
         )
-        if el is not None:
-            return el
-        return by_role(self._driver, "textbox", name=re.compile(r"new password", re.I))
 
     def confirm_password_input(self) -> WebElement:
-        el = first_visible_css(
-            self._driver, _CONFIRM_PASSWORD_SCOPED, _CONFIRM_PASSWORD_FIELDS
-        )
-        if el is not None:
-            return el
-        return by_role(
-            self._driver, "textbox", name=re.compile(r"confirm password", re.I)
+        return _clerk_input(
+            self._driver,
+            _CONFIRM_PASSWORD_SCOPED,
+            _CONFIRM_PASSWORD_FIELDS,
+            role="textbox",
+            name=re.compile(r"confirm password", re.I),
         )
 
     def sign_out_checkbox(self) -> WebElement:
-        el = first_visible_css(self._driver, _SIGN_OUT_SCOPED, _SIGN_OUT_FIELDS)
-        if el is not None:
-            return el
-        return by_role(
+        return _clerk_input(
             self._driver,
-            "checkbox",
+            _SIGN_OUT_SCOPED,
+            _SIGN_OUT_FIELDS,
+            role="checkbox",
             name=re.compile(r"sign out of all other devices", re.I),
         )
 
@@ -120,15 +119,7 @@ class ResetPasswordFormStep(ClerkFormPage):
         self._driver.execute_script("arguments[0].click();", self.reset_password_button())
 
     def wait_until_visible(self, timeout: float | None = None) -> None:
-        t = timeout or DEFAULT_TIMEOUT_SEC
-
-        def _ready(_driver: WebDriver) -> bool:
-            try:
-                return self.new_password_input().is_displayed()
-            except Exception:
-                return False
-
-        WebDriverWait(self._driver, t).until(_ready)
+        wait_until_element_displayed(self._driver, self.new_password_input, timeout)
 
     def wait_until_hidden(self, timeout: float | None = None) -> None:
         wait_hidden(self._driver, ("css selector", _NEW_PASSWORD_SCOPED), timeout)

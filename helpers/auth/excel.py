@@ -10,100 +10,30 @@ import secrets
 import string
 import time
 from collections.abc import Callable
-from pathlib import Path
-from typing import Any, Protocol
+from typing import Any
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 
-from helpers.load_excel import TestRow, load_excel
-from helpers.validation import assert_input_and_screen_message
+from helpers.auth.validation import assert_input_and_screen_message
+from helpers.browser.waits import left_auth_url
+from helpers.excel.cells import (
+    cell_text,
+    cell_value,
+    excel_flag,
+    message_lower,
+)
+from helpers.excel.load import TestRow
 
-ROOT = Path(__file__).resolve().parents[1]
-DATA_XLSX = ROOT / "test_data" / "data.xlsx"
+from pages.clerk_form import OTPStep
 
 _CLERK_TEST_EMAIL = re.compile(r"^(?P<name>.+?)\+clerk_test(?:@(?P<domain>.+))?$")
 _RANDOM_SUFFIX_ALPHABET = string.ascii_lowercase + string.digits
 
 PASSWORD_VALIDATION_TRANSITION_SEC = 2.0
 _PASSWORD_TRANSITION_POLL_SEC = 0.1
-
-
-class AuthPage(Protocol):
-    def assert_input_and_screen_message(
-        self,
-        input_el: WebElement,
-        text: str,
-        *,
-        exact: bool = False,
-        timeout: float = 10,
-    ) -> None: ...
-
-
-def load_sheet_cases(sheet: str, *, path: Path = DATA_XLSX) -> list[TestRow]:
-    """Load test rows for one sheet from the default or given Excel workbook.
-
-    Nạp các dòng test cho một sheet từ workbook Excel mặc định hoặc chỉ định.
-    """
-    workbook = load_excel(path)
-    cases = workbook.get(sheet)
-    if cases is None:
-        available = ", ".join(workbook) or "(none)"
-        raise ValueError(
-            f"Sheet {sheet!r} not found in {path.name}. "
-            f"Available sheets: {available}"
-        )
-    return cases
-
-
-def cell_input(value: object) -> str:
-    """Cell content as string; leading/trailing spaces are kept for form input.
-
-    Nội dung ô dưới dạng chuỗi; giữ nguyên khoảng trắng đầu/cuối khi nhập form.
-    """
-    if value is None:
-        return ""
-    if isinstance(value, float) and value.is_integer():
-        return str(int(value))
-    if isinstance(value, int):
-        return str(value)
-    return str(value)
-
-
-def cell_text(value: object) -> str:
-    """Trimmed cell text for messages, flags, and other non-input fields.
-
-    Văn bản ô đã cắt khoảng trắng, dùng cho thông báo, cờ và các trường không phải nhập liệu.
-    """
-    return cell_input(value).strip()
-
-
-def cell_value(value: object) -> str | None:
-    """Return cell text, or ``None`` when the cell is empty.
-
-    Trả về văn bản ô, hoặc ``None`` khi ô trống.
-    """
-    text = cell_input(value)
-    return text if text != "" else None
-
-
-def otp_text(value: object) -> str | None:
-    """Return OTP cell text, or ``None`` when empty.
-
-    Trả về văn bản ô OTP, hoặc ``None`` khi trống.
-    """
-    return cell_value(value)
-
-
-def password_text(value: object) -> str | None:
-    """Resolve password cells from Excel (handles numeric values like ``12345``).
-
-    Đọc ô mật khẩu từ Excel (xử lý giá trị số như ``12345``).
-    """
-    return cell_value(value)
-
 
 OTP_LENGTH = 6
 
@@ -123,14 +53,7 @@ def term_accepted(case: TestRow) -> bool:
 
     Trả về có nên chọn checkbox điều khoản hay không (cột ``term``: 1=có, 0=không).
     """
-    term = case.get("term")
-    if term is None:
-        return False
-    if isinstance(term, bool):
-        return term
-    if isinstance(term, (int, float)):
-        return term != 0
-    return cell_text(term) not in ("0", "false", "no", "")
+    return excel_flag(case, "term") or False
 
 
 def _random_suffix(length: int = 6) -> str:
@@ -199,29 +122,10 @@ def sign_up_assert_messages(case: TestRow) -> list[str]:
     email = cell_value(case.get("email"))
     local = email.split("@", 1)[0] if email else ""
 
-    if " " in local and "valid email" in message.lower():
+    if " " in local and "valid email" in message_lower(case):
         return ["Please fill out this field", message]
 
     return messages
-
-
-def case_id(prefix: str, index: int, case: TestRow) -> str:
-    """Build a stable pytest parametrize id from prefix, row index, and message.
-
-    Tạo id pytest parametrize ổn định từ prefix, chỉ số dòng và message.
-    """
-    message = cell_text(case.get("message"))
-    if message:
-        return f"{prefix}-{index + 1}-{message[:40]}"
-    return f"{prefix}-{index + 1}-pass"
-
-
-def message_lower(case: TestRow) -> str:
-    """Return the row ``message`` column in lowercase.
-
-    Trả về cột ``message`` của dòng ở dạng chữ thường.
-    """
-    return cell_text(case.get("message")).lower()
 
 
 def sign_in_steps(case: TestRow) -> dict[str, bool]:
@@ -233,35 +137,12 @@ def sign_in_steps(case: TestRow) -> dict[str, bool]:
     if not message:
         return {"email": True, "password": True, "otp": True}
 
-    lower = message.lower()
+    lower = message_lower(case)
     if "code" in lower:
         return {"email": True, "password": True, "otp": True}
     if "password" in lower:
         return {"email": True, "password": True, "otp": False}
     return {"email": True, "password": False, "otp": False}
-
-
-def excel_flag(case: TestRow, column: str) -> bool | None:
-    """Parse a 0/1 Excel flag column; ``None`` when the cell is empty.
-
-    Phân tích cột cờ 0/1 trong Excel; ``None`` khi ô trống.
-    """
-    value = case.get(column)
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, (int, float)):
-        return value != 0
-    return cell_text(value) not in ("0", "false", "no", "")
-
-
-def log_out_all_devices(case: TestRow) -> bool | None:
-    """Return whether the sign-out checkbox should be checked (``log_out``: 1=yes, 0=no).
-
-    Trả về có nên chọn checkbox đăng xuất hay không (``log_out``: 1=có, 0=không).
-    """
-    return excel_flag(case, "log_out")
 
 
 def reset_password_steps(case: TestRow) -> dict[str, bool]:
@@ -278,12 +159,9 @@ def reset_password_steps(case: TestRow) -> dict[str, bool]:
     if not message:
         return {"email": True, "password": True, "otp": True, "reset": True}
 
-    lower = message.lower()
-
-    if "incorrect code" in lower or "enter code" in lower:
-        return {"email": True, "password": True, "otp": True, "reset": False}
-
-    return {"email": True, "password": True, "otp": True, "reset": True}
+    lower = message_lower(case)
+    reset = not ("incorrect code" in lower or "enter code" in lower)
+    return {"email": True, "password": True, "otp": True, "reset": reset}
 
 
 def reset_password_should_submit(case: TestRow) -> bool:
@@ -307,7 +185,7 @@ def reset_password_assert_messages(case: TestRow) -> list[str]:
         return []
 
     messages = [message]
-    lower = message.lower()
+    lower = message_lower(case)
 
     if "successfully changed" in lower:
         messages.append("Your password was successfully changed")
@@ -332,7 +210,7 @@ def sign_up_steps(case: TestRow) -> dict[str, bool]:
     if not message:
         return {"email": True, "password": True, "legal": legal, "otp": True}
 
-    lower = message.lower()
+    lower = message_lower(case)
 
     if "code" in lower:
         return {"email": True, "password": True, "legal": legal, "otp": True}
@@ -370,6 +248,43 @@ def sign_up_steps(case: TestRow) -> dict[str, bool]:
     }
 
 
+def run_identifier_step(identifier: Any, email: str | None) -> None:
+    """Submit the identifier step with or without an email value."""
+    if email:
+        identifier.submit_email(email)
+    else:
+        identifier.submit_empty()
+
+
+def run_password_step(
+    password_page: Any,
+    password_value: str | None,
+    *,
+    forgot: bool = False,
+    on_forgot: Callable[[], None] | None = None,
+) -> None:
+    """Submit the password step, or follow the forgot-password path."""
+    password_page.wait_until_visible()
+    if forgot:
+        password_page.click_forgot_password()
+        if on_forgot is not None:
+            on_forgot()
+        return
+    if password_value:
+        password_page.submit_password(password_value)
+    else:
+        password_page.submit_empty()
+
+
+def run_otp_step(otp_step: OTPStep, otp: str | None) -> None:
+    """Fill OTP when provided and click Continue when the code is incomplete."""
+    otp_step.wait_until_visible()
+    if otp:
+        otp_step.fill_otp(otp)
+    if not otp_is_complete(otp):
+        otp_step.continue_button().click()
+
+
 def auth_case_involves_password_form(case: TestRow) -> bool:
     """Return whether the case expects a password-field validation message.
 
@@ -378,7 +293,7 @@ def auth_case_involves_password_form(case: TestRow) -> bool:
     if "password" in message_lower(case):
         return True
     for key in ("password", "new_password", "confirm_password"):
-        if password_text(case.get(key)) or cell_value(case.get(key)):
+        if cell_value(case.get(key)):
             return True
     return False
 
@@ -398,7 +313,7 @@ def wait_password_validation_transition(
     if not auth_case_involves_password_form(case):
         return
 
-    from helpers.validation import _auth_message_visible
+    from helpers.auth.validation import _auth_message_visible
 
     resolve_field = lambda: field_for_assertion(page, case)
     deadline = time.monotonic() + PASSWORD_VALIDATION_TRANSITION_SEC
@@ -410,7 +325,7 @@ def wait_password_validation_transition(
 
 
 def assert_auth_outcome(
-    page: AuthPage,
+    page: Any,
     driver: WebDriver,
     case: TestRow,
     *,
@@ -446,8 +361,6 @@ def assert_auth_outcome(
             "Expected message not found. Tried:\n" + "\n".join(errors)
         )
 
-    def _left_auth_flow(_: WebDriver) -> bool:
-        url = driver.current_url
-        return auth_path not in url and "factor-two" not in url
-
-    WebDriverWait(driver, wait_timeout).until(_left_auth_flow)
+    WebDriverWait(driver, wait_timeout).until(
+        lambda _: left_auth_url(driver, auth_path)
+    )

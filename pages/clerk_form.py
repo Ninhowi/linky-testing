@@ -7,30 +7,28 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import Callable
 
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.support.ui import WebDriverWait
 
-from helpers.locators import by_role, first_visible_css, scoped_css
-from helpers.waits import DEFAULT_TIMEOUT_SEC, wait_for_clerk_ready, wait_hidden, wait_visible
-
-_CLERK_SCOPE = '[data-clerk-ready="true"] '
-_EMAIL_FIELDS = (
-    'input[name="identifier"], input#identifier, '
-    'input[name="emailAddress"], input#emailAddress, '
-    'input[type="email"]'
+from helpers.browser.locators import by_role, first_visible_css
+from helpers.browser.waits import (
+    DEFAULT_TIMEOUT_SEC,
+    wait_for_clerk_ready,
+    wait_hidden,
+    wait_until_element_displayed,
+    wait_visible,
 )
-_PASSWORD_FIELDS = 'input[name="password"], input#password, input[type="password"]'
-_LEGAL_FIELDS = 'input[name="legalAccepted"], input#legalAccepted-field'
-_OTP_INPUT_CSS = (
-    'input[autocomplete="one-time-code"], input[name*="code"], '
-    'input[name*="otp"], input[inputmode="numeric"]'
+from pages.selectors.clerk import (
+    _EMAIL_FIELDS,
+    _EMAIL_INPUT_SCOPED_CSS,
+    _LEGAL_FIELDS,
+    _LEGAL_INPUT_SCOPED_CSS,
+    _OTP_INPUT_LOCATOR,
+    _PASSWORD_FIELDS,
+    _PASSWORD_INPUT_SCOPED_CSS,
 )
-_EMAIL_INPUT_SCOPED_CSS = scoped_css(_CLERK_SCOPE, _EMAIL_FIELDS)
-_PASSWORD_INPUT_SCOPED_CSS = scoped_css(_CLERK_SCOPE, _PASSWORD_FIELDS)
-_LEGAL_INPUT_SCOPED_CSS = scoped_css(_CLERK_SCOPE, _LEGAL_FIELDS)
-_OTP_INPUT_LOCATOR = ("css selector", _OTP_INPUT_CSS)
 _CONTINUE = re.compile(r"continue", re.I)
 _FORGOT_PASSWORD = re.compile(r"forgot password", re.I)
 
@@ -101,10 +99,6 @@ def fill_password_input(
     time.sleep(_UI_SETTLE_SEC)
 
 
-def _email_local_part(email: str) -> str:
-    return email.split("@", 1)[0]
-
-
 def _clerk_input(
     driver: WebDriver,
     scoped_css: str,
@@ -130,6 +124,11 @@ class ClerkFormPage:
 
     def continue_button(self) -> WebElement:
         return by_role(self._driver, "button", name=_CONTINUE)
+
+    def submit_with_continue(self, fill: Callable[[], None] | None = None) -> None:
+        if fill is not None:
+            fill()
+        self.continue_button().click()
 
 
 class IdentifierStep(ClerkFormPage):
@@ -254,15 +253,7 @@ class OTPStep(ClerkFormPage):
             time.sleep(delay)
 
     def wait_until_visible(self, timeout: float | None = None) -> None:
-        t = timeout or DEFAULT_TIMEOUT_SEC
-
-        def _ready(_driver: WebDriver) -> bool:
-            try:
-                return self.otp_input().is_displayed()
-            except Exception:
-                return False
-
-        WebDriverWait(self._driver, t).until(_ready)
+        wait_until_element_displayed(self._driver, self.otp_input, timeout)
 
     def wait_until_hidden(self, timeout: float | None = None) -> None:
         wait_hidden(self._driver, _OTP_INPUT_LOCATOR, timeout)

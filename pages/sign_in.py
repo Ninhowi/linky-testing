@@ -10,7 +10,7 @@ import re
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 
-from helpers.locators import by_role
+from helpers.browser.locators import by_role
 from pages.clerk_form import ClerkFormPage, IdentifierStep, OTPStep, PasswordStep
 
 _SIGN_IN_PATH = "/sign-in"
@@ -19,11 +19,10 @@ _RESET_PASSWORD = re.compile(r"reset your password", re.I)
 
 class IdentifierPage(IdentifierStep):
     def submit_email(self, email: str) -> None:
-        self.fill_email(email)
-        self.continue_button().click()
+        self.submit_with_continue(lambda: self.fill_email(email))
 
     def submit_empty(self) -> None:
-        self.continue_button().click()
+        self.submit_with_continue()
 
     @classmethod
     def open(
@@ -39,15 +38,10 @@ class IdentifierPage(IdentifierStep):
 
 class PasswordPage(PasswordStep):
     def submit_password(self, password: str) -> None:
-        self.fill_password(password)
-        self.continue_button().click()
+        self.submit_with_continue(lambda: self.fill_password(password))
 
     def submit_empty(self) -> None:
-        self.continue_button().click()
-
-
-class OTPPage(OTPStep):
-    pass
+        self.submit_with_continue()
 
 
 class ForgotPasswordPage(ClerkFormPage):
@@ -74,7 +68,7 @@ class SignInPage(ClerkFormPage):
         self.identifier = IdentifierPage(driver)
         self.password = PasswordPage(driver)
         self.forgot = ForgotPasswordPage(driver)
-        self.otp = OTPPage(driver)
+        self.otp = OTPStep(driver)
 
     @classmethod
     def open(

@@ -2,20 +2,19 @@ from .clerk_form import ClerkFormPage, IdentifierStep, LegalStep, OTPStep, Passw
 from .sign_in import (
     ForgotPasswordPage,
     IdentifierPage,
-    OTPPage,
     PasswordPage,
     SignInPage,
 )
 from .reset_password import ResetPasswordFormStep, ResetPasswordPage
 from .sign_up import SignUpFormStep, SignUpPage
 from .user_profile import ProfileSection, UserProfilePage
+from .video_chat import VideoChatPage
 
 __all__ = [
     "ClerkFormPage",
     "IdentifierPage",
     "IdentifierStep",
     "LegalStep",
-    "OTPPage",
     "OTPStep",
     "ForgotPasswordPage",
     "PasswordPage",
@@ -27,4 +26,5 @@ __all__ = [
     "SignUpPage",
     "ProfileSection",
     "UserProfilePage",
+    "VideoChatPage",
 ]

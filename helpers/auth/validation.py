@@ -14,7 +14,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 
-from helpers.locators import assert_text_on_screen, text_xpath
+from helpers.browser.locators import assert_text_on_screen, text_xpath
 
 InputRef: TypeAlias = WebElement | Callable[[], WebElement]
 

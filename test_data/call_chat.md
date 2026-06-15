@@ -17,7 +17,9 @@ Each **row** is one test case. Row 1 = column headers; row 2+ = cases.
 | `message` | yes* | — | Text typed into `chat-input` and sent (or attempted). *Column must be present; value may be empty for `reject` cases. |
 | `outcome` | no | `deliver` | Expected result: message is delivered to the peer, or send is blocked. See [Outcome values](#outcome-values). |
 | `received` | no | `message.strip()` | Text the receiver must see in `chat-messages-container`. Use when trim/normalization changes the visible text. |
-| `category` | no | `smoke` | Label for grouping and pytest IDs only; does not change runtime behaviour. See [Categories](#categories). |
+| `viewport` | no | `desktop` | Screen layout for user1 + user2. See [Viewport values](#viewport-values). |
+
+**Category is not a column.** It is inferred automatically for pytest IDs (see [Auto-detected category](#auto-detected-category)).
 
 ### Minimal row
 
@@ -26,12 +28,42 @@ sender | receiver | message
 user1  | user2      | hello-from-user1
 ```
 
-### Row with all keys
+### Row with optional columns
 
 ```text
-category | sender | receiver | message              | outcome | received
-boundary | user2  | user1      |   trimmed message    | deliver | trimmed message
+sender | receiver | message              | outcome | received        | viewport
+user2  | user1      |   trimmed message    | deliver | trimmed message | desktop+mobile
 ```
+
+---
+
+## Viewport values
+
+| `viewport` | user1 | user2 | Notes |
+|------------|-------|-------|-------|
+| `desktop` | desktop | desktop | **Default** — both browsers at 1280×720 |
+| `mobile` | mobile | mobile | Both at 390×844 |
+| `desktop+mobile` | desktop | mobile | Mixed layout |
+| `mobile+desktop` | mobile | desktop | Mixed layout (reversed) |
+| `all` | — | — | Expands to **four tests**: all layouts above |
+
+Omitted or blank `viewport` = `desktop`.
+
+A row with `viewport: all` produces four parametrized tests (one per layout). Matched pairs are cached per layout so rematching only happens once per layout, not per row.
+
+---
+
+## Auto-detected category
+
+Used only in pytest test IDs (`call_chat_case_id`). Detection order in `infer_call_chat_category`:
+
+| Category | Detected when |
+|----------|----------------|
+| `validation` | `outcome` is `reject` |
+| `boundary` | `boundary|` prefix, `received` differs from trimmed `message`, length 1 or ≥ 200, leading/trailing whitespace, double spaces, or tab characters |
+| `unicode` | Message contains non-ASCII characters |
+| `special` | URL, JSON-like text, HTML-like tags, backslashes, digits-only, heavy punctuation, or mixed quotes |
+| `smoke` | Everything else (basic delivery, role aliases) |
 
 ---
 
@@ -45,8 +77,6 @@ Both columns identify **which matched browser** acts in the scenario. They are r
 | `user2`, `user_b`, `b`, `2` | Second browser in the pair (`page_b`) |
 
 Matching is case-insensitive. Any other value raises `ValueError`.
-
-Typical pattern: alternate `user1` → `user2` and `user2` → `user1` so both directions are covered.
 
 ---
 
@@ -81,26 +111,10 @@ If `outcome` is `reject`, `received` is ignored.
 
 ---
 
-## Categories
-
-Informational only — used in pytest test IDs (`call_chat_case_id`). Suggested values:
-
-| Category | Purpose |
-|----------|---------|
-| `smoke` | Basic user1 ↔ user2 delivery, role aliases |
-| `boundary` | Length limits (1, 200, 201, 400, 401 chars), trim, internal spaces, tabs |
-| `validation` | Empty / whitespace-only → `reject` |
-| `unicode` | Emoji, Vietnamese, CJK, mixed scripts |
-| `special` | HTML literals, URLs, JSON, quotes, escapes, punctuation, digits |
-
-You may add new category labels; keep them short and lowercase.
-
----
-
 ## How a row is executed
 
-1. **Fixture `in_call_chat_pair`** (module scope): two browsers log in, match once, stay in call for all rows in the module.
-2. **Fixture `chat_viewport`**: each row runs 4 times — `desktop`, `mobile`, `desktop+mobile`, `mobile+desktop`.
+1. **`load_call_chat_cases`** expands `viewport: all` into separate rows (one per layout).
+2. **Fixture `in_call_chat_pair`**: two browsers log in, match once per viewport layout (cached).
 3. **`run_call_chat_exchange`** (`helpers/call/chat_flow.py`):
    - Ensures both sides are still `in_call`
    - Resolves `sender` / `receiver` pages
@@ -117,31 +131,29 @@ uv run python -m pytest tests/test_6_call_in_call_chat.py -m call_in_call_chat
 ## Excel setup
 
 1. Add sheet **`call_chat`** to `test_data/data.xlsx`.
-2. Row 1 headers (order flexible): `category`, `sender`, `receiver`, `message`, `outcome`, `received`.
-3. Leave `outcome` / `received` / `category` blank to use defaults.
+2. Row 1 headers (order flexible): `sender`, `receiver`, `message`, `outcome`, `received`, `viewport`.
+3. Leave optional columns blank to use defaults (`outcome` → `deliver`, `viewport` → `desktop`).
 4. When the sheet has at least one data row, it replaces `CALL_CHAT_SMOKE_CASES`.
 
 **Tips**
 
 - For messages **> 200 chars**, prefer a short prefix (e.g. `boundary|`) so chunked delivery is easy to assert.
 - Do not put formulas that strip leading spaces if you are testing trim behaviour.
+- Use `viewport: all` only when a case must run on every layout; otherwise leave blank for faster runs.
 - GIF/sticker/image chat is **not** covered by this sheet (text only).
 
 ---
 
 ## Example rows
 
-| category | sender | receiver | message | outcome | received |
-|----------|--------|----------|---------|---------|----------|
-| smoke | user1 | user2 | hello-from-user1 | deliver | |
-| smoke | user2 | user1 | hello-from-user2 | deliver | |
-| boundary | user1 | user2 | a | deliver | |
-| boundary | user2 | user1 | *(200-char string)* | deliver | |
-| boundary | user1 | user2 | `  trimmed  ` | deliver | trimmed |
-| validation | user1 | user2 | | reject | |
-| validation | user2 | user1 | `   ` | reject | |
-| unicode | user1 | user2 | Xin chào | deliver | |
-| special | user2 | user1 | `<script>alert(1)</script>` | deliver | |
+| sender | receiver | message | outcome | received | viewport |
+|--------|----------|---------|---------|----------|----------|
+| user1 | user2 | hello-from-user1 | deliver | | |
+| user2 | user1 | hello-from-user2 | deliver | | mobile |
+| user1 | user2 | `  trimmed  ` | deliver | trimmed | desktop+mobile |
+| user1 | user2 | | reject | | |
+| user1 | user2 | Xin chào | deliver | | all |
+| user2 | user1 | `<script>alert(1)</script>` | deliver | | |
 
 ---
 
@@ -149,8 +161,9 @@ uv run python -m pytest tests/test_6_call_in_call_chat.py -m call_in_call_chat
 
 | File | Role |
 |------|------|
-| `helpers/call/chat_excel.py` | Load sheet / smoke array, build pytest IDs |
-| `helpers/call/chat_validation.py` | Parse `outcome`, `received`, message chunks |
+| `helpers/call/chat_excel.py` | Load sheet / smoke array, expand viewport, build pytest IDs |
+| `helpers/call/chat_validation.py` | Infer category, parse `outcome` / `received` / viewport |
+| `helpers/browser/viewport.py` | Viewport sizes and layout expansion |
 | `helpers/call/chat_flow.py` | Execute one row against a matched pair |
 | `tests/test_6_call_in_call_chat.py` | Parametrized tests |
 | `pages/video_chat.py` | Chat UI actions (`send_message`, `wait_message_text`, …) |

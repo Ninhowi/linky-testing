@@ -16,8 +16,9 @@ from helpers.auth.session import (
     require_env_credentials,
     require_env_credentials_user2,
 )
-from helpers.call.session import setup_matched_call
-from helpers.browser.viewport import CHAT_VIEWPORT_LAYOUTS, apply_viewport_layout, parse_viewport_layout
+from helpers.call.session import IN_CALL_CHAT_PAIR_CACHE, setup_matched_call
+from helpers.browser.viewport import apply_viewport_layout
+from helpers.call.chat_validation import call_chat_viewport_layout
 from helpers.runtime.env import load_env
 
 load_env()
@@ -158,44 +159,30 @@ def call_user2_driver(_call_user2_auth_state, base_url: str):
     drv.quit()
 
 
-@pytest.fixture(scope="module", params=CHAT_VIEWPORT_LAYOUTS)
-def chat_viewport(request: pytest.FixtureRequest) -> str:
-    return str(request.param)
-
-
-@pytest.fixture(scope="module")
-def chat_viewport_users(chat_viewport: str) -> tuple[str, str]:
-    return parse_viewport_layout(chat_viewport)
-
-
-@pytest.fixture(scope="module")
+@pytest.fixture
 def in_call_chat_pair(
     call_user1_driver,
     call_user2_driver,
     base_url: str,
-    chat_viewport: str,
+    call_chat_case,
 ):
-    """Two browsers matched once per viewport layout for the in-call chat module.
+    """Two browsers matched once per viewport layout (cached per row layout).
 
-    Hai trình duyệt ghép cặp một lần mỗi bố cục viewport cho module chat in_call.
+    Hai trình duyệt ghép cặp một lần mỗi bố cục viewport (cache theo layout của dòng).
     """
-    apply_viewport_layout(call_user1_driver, call_user2_driver, chat_viewport)
-
-    creds_a = require_env_credentials()
-    creds_b = require_env_credentials_user2()
-    page_a, page_b = setup_matched_call(
-        call_user1_driver,
-        call_user2_driver,
-        base_url,
-        creds_a,
-        creds_b,
-    )
-    yield page_a, page_b
-    for page in (page_a, page_b):
-        try:
-            page.ensure_idle()
-        except Exception:
-            pass
+    layout = call_chat_viewport_layout(call_chat_case)
+    if layout not in IN_CALL_CHAT_PAIR_CACHE:
+        apply_viewport_layout(call_user1_driver, call_user2_driver, layout)
+        creds_a = require_env_credentials()
+        creds_b = require_env_credentials_user2()
+        IN_CALL_CHAT_PAIR_CACHE[layout] = setup_matched_call(
+            call_user1_driver,
+            call_user2_driver,
+            base_url,
+            creds_a,
+            creds_b,
+        )
+    yield IN_CALL_CHAT_PAIR_CACHE[layout]
 
 
 @pytest.fixture

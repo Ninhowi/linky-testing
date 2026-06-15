@@ -21,6 +21,30 @@ CHAT_VIEWPORT_LAYOUTS = (
     "mobile+desktop",
 )
 
+DEFAULT_CHAT_VIEWPORT = "desktop"
+VIEWPORT_ALL = "all"
+
+
+def normalize_viewport(value: object) -> str:
+    from helpers.excel.cells import cell_value
+
+    raw = (cell_value(value) or DEFAULT_CHAT_VIEWPORT).strip().lower()
+    if raw == VIEWPORT_ALL:
+        return VIEWPORT_ALL
+    if raw in CHAT_VIEWPORT_LAYOUTS:
+        return raw
+    raise ValueError(
+        f"Unknown viewport {raw!r}; use {VIEWPORT_ALL!r}, "
+        f"{' | '.join(CHAT_VIEWPORT_LAYOUTS)}"
+    )
+
+
+def expand_viewport(value: object) -> list[str]:
+    raw = normalize_viewport(value)
+    if raw == VIEWPORT_ALL:
+        return list(CHAT_VIEWPORT_LAYOUTS)
+    return [raw]
+
 
 def parse_viewport_layout(layout: str) -> tuple[str, str]:
     if "+" in layout:

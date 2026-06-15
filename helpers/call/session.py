@@ -16,6 +16,18 @@ from pages.video_chat import VideoChatPage
 _MATCH_TIMEOUT_SEC = 120.0
 _SEARCH_STAGGER_SEC = 2.0
 
+IN_CALL_CHAT_PAIR_CACHE: dict[str, tuple[VideoChatPage, VideoChatPage]] = {}
+
+
+def cleanup_in_call_chat_pairs() -> None:
+    for page_a, page_b in list(IN_CALL_CHAT_PAIR_CACHE.values()):
+        for page in (page_a, page_b):
+            try:
+                page.ensure_idle()
+            except Exception:
+                pass
+    IN_CALL_CHAT_PAIR_CACHE.clear()
+
 
 def setup_matched_call(
     driver_a: WebDriver,

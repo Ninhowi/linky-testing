@@ -30,6 +30,18 @@ def _base_url() -> str | None:
 def _headed() -> bool:
     return os.environ.get("HEADED", "").lower() in ("1", "true", "yes")
 
+def _truthy_env(name: str, *, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None or raw == "":
+        return default
+    return raw.lower() in ("1", "true", "yes")
+
+def _use_real_device() -> bool:
+    return _truthy_env("USE_REAL_DEVICE")
+
+def _auto_allow_media() -> bool:
+    return _truthy_env("AUTO_ALLOW_MEDIA", default=True)
+
 @pytest.fixture(scope="session")
 def base_url() -> str:
     url = _base_url()
@@ -38,16 +50,18 @@ def base_url() -> str:
     return url
 
 def _apply_media_options(options: Options) -> None:
-    options.add_argument("--use-fake-device-for-media-stream")
-    options.add_argument("--use-fake-ui-for-media-stream")
-    prefs = dict(options.experimental_options.get("prefs", {}))
-    prefs.update(
-        {
-            "profile.default_content_setting_values.media_stream_camera": 1,
-            "profile.default_content_setting_values.media_stream_mic": 1,
-        }
-    )
-    options.experimental_options["prefs"] = prefs
+    if not _use_real_device():
+        options.add_argument("--use-fake-device-for-media-stream")
+        options.add_argument("--use-fake-ui-for-media-stream")
+    if _auto_allow_media():
+        prefs = dict(options.experimental_options.get("prefs", {}))
+        prefs.update(
+            {
+                "profile.default_content_setting_values.media_stream_camera": 1,
+                "profile.default_content_setting_values.media_stream_mic": 1,
+            }
+        )
+        options.experimental_options["prefs"] = prefs
 
 def _create_driver(*, media: bool = False) -> webdriver.Chrome:
     binary_path = ensure_binary()

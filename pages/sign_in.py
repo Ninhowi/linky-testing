@@ -10,7 +10,7 @@ import re
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 
-from helpers.locators import by_role
+from helpers.browser.locators import by_role
 from pages.clerk_form import ClerkFormPage, IdentifierStep, OTPStep, PasswordStep
 
 _SIGN_IN_PATH = "/sign-in"

@@ -1,0 +1,63 @@
+---
+description: Avoid duplicate helpers; extend existing functions before adding new ones
+alwaysApply: true
+---
+
+# No duplicate functionality
+
+Before adding a function, check whether existing code already does the same job. Prefer **one implementation, many call sites**.
+
+## Decision order
+
+1. **Reuse** — call an existing helper as-is.
+2. **Extend** — add an optional parameter or widen the existing function when behavior differs only slightly.
+3. **Create** — only when the behavior is genuinely different and cannot fit cleanly into an existing API.
+
+## Do not
+
+- Add one-line aliases that only rename or re-export another function (`otp_text` → `cell_value`).
+- Copy-paste the same block into multiple files (OTP fill + continue, auth URL checks, Excel flag parsing).
+- Split logic into a new helper when a parameter on the existing one is enough.
+
+## Do
+
+- Search `helpers/`, `pages/`, and tests for similar names and patterns before writing.
+- Use shared primitives: `cell_value`, `excel_flag`, `message_lower`, `run_otp_step`, `left_auth_url`.
+- Keep flow-specific routing separate when branches would make one function harder to read (e.g. per-test `_field_for_assertion`).
+
+## Examples (this project)
+
+```python
+# ❌ BAD — alias adds no behavior
+def otp_text(value: object) -> str | None:
+    return cell_value(value)
+
+# ✅ GOOD — use cell_value(case.get("otp")) directly
+```
+
+```python
+# ❌ BAD — duplicate 0/1 flag parsing
+def term_accepted(case: TestRow) -> bool:
+    term = case.get("term")
+    if isinstance(term, bool):
+        return term
+    ...
+
+# ✅ GOOD — delegate to excel_flag
+def term_accepted(case: TestRow) -> bool:
+    return excel_flag(case, "term") or False
+```
+
+```python
+# ❌ BAD — same OTP block in three test files
+page.otp.wait_until_visible()
+if otp:
+    page.otp.fill_otp(otp)
+if not otp_is_complete(otp):
+    page.otp.continue_button().click()
+
+# ✅ GOOD — one helper
+run_otp_step(page.otp, cell_value(case.get("otp")))
+```
+
+When extending beats creating: if two flows share 80% of steps, extract the shared part (e.g. `run_identifier_step`) and keep the differing part local (forgot-password callback, legal checkbox).

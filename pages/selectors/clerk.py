@@ -5,7 +5,7 @@ Selector CSS cho form Clerk (tên trường, input scoped, nút).
 
 from __future__ import annotations
 
-from helpers.locators import scoped_css
+from helpers.browser.locators import scoped_css
 
 _CLERK_SCOPE = '[data-clerk-ready="true"] '
 

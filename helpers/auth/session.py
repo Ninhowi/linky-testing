@@ -14,7 +14,8 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 
-from helpers.waits import left_auth_url
+from helpers.browser.e2e_session import inject_e2e_key
+from helpers.browser.waits import left_auth_url
 from pages.sign_in import SignInPage
 
 _SIGN_IN_PATH = "/sign-in"
@@ -27,9 +28,14 @@ class Credentials:
     password: str
     otp: str | None = None
 
-    def assert_valid(self) -> None:
+    def assert_valid(self, *, reason: str = "email and password are required") -> None:
         if not self.email or not self.password:
-            pytest.skip("email and password are required for profile tests")
+            pytest.skip(reason)
+
+
+@dataclass
+class AuthSessionState:
+    active_base_url: str | None = None
 
 
 def require_env_credentials() -> Credentials:
@@ -41,7 +47,20 @@ def require_env_credentials() -> Credentials:
     password = os.environ.get("USER_PASSWORD", "").strip()
     otp_raw = os.environ.get("USER_OTP", "").strip()
     credentials = Credentials(email=email, password=password, otp=otp_raw or None)
-    credentials.assert_valid()
+    credentials.assert_valid(reason="USER_EMAIL and USER_PASSWORD are required")
+    return credentials
+
+
+def require_env_credentials_user2() -> Credentials:
+    """Return second-user credentials from env or skip the test.
+
+    Trả về credentials người dùng thứ hai từ env hoặc bỏ qua test.
+    """
+    email = os.environ.get("USER2_EMAIL", "").strip()
+    password = os.environ.get("USER2_PASSWORD", "").strip()
+    otp_raw = os.environ.get("USER2_OTP", "").strip()
+    credentials = Credentials(email=email, password=password, otp=otp_raw or None)
+    credentials.assert_valid(reason="USER2_EMAIL and USER2_PASSWORD are required")
     return credentials
 
 
@@ -89,6 +108,24 @@ def _submit_otp_if_required(
         return
 
     page.otp.fill_otp(_resolve_otp(credentials))
+
+
+def ensure_logged_in_for_base_url(
+    driver: WebDriver,
+    base_url: str,
+    credentials: Credentials,
+    state: AuthSessionState,
+) -> None:
+    """Sign in only when ``base_url`` differs from the active session environment.
+
+    Chỉ đăng nhập khi ``base_url`` khác môi trường session hiện tại.
+    """
+    normalized = base_url.rstrip("/")
+    if state.active_base_url == normalized:
+        return
+    inject_e2e_key(driver, normalized)
+    login_with_credentials(driver, normalized, credentials)
+    state.active_base_url = normalized
 
 
 def login_with_credentials(driver: WebDriver, base_url: str, credentials: Credentials) -> None:

@@ -8,7 +8,7 @@ from __future__ import annotations
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 
-from helpers.waits import wait_for_clerk_ready
+from helpers.browser.waits import wait_for_clerk_ready
 from pages.clerk_form import ClerkFormPage, IdentifierStep, LegalStep, OTPStep, PasswordStep
 
 _SIGN_UP_PATH = "/sign-up"

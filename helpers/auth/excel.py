@@ -10,7 +10,6 @@ import secrets
 import string
 import time
 from collections.abc import Callable
-from pathlib import Path
 from typing import Any
 
 from selenium.common.exceptions import TimeoutException
@@ -18,14 +17,17 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 
-from helpers.load_excel import TestRow, load_excel
-from helpers.validation import assert_input_and_screen_message
-from helpers.waits import left_auth_url
+from helpers.auth.validation import assert_input_and_screen_message
+from helpers.browser.waits import left_auth_url
+from helpers.excel.cells import (
+    cell_text,
+    cell_value,
+    excel_flag,
+    message_lower,
+)
+from helpers.excel.load import TestRow
 
 from pages.clerk_form import OTPStep
-
-ROOT = Path(__file__).resolve().parents[1]
-DATA_XLSX = ROOT / "test_data" / "data.xlsx"
 
 _CLERK_TEST_EMAIL = re.compile(r"^(?P<name>.+?)\+clerk_test(?:@(?P<domain>.+))?$")
 _RANDOM_SUFFIX_ALPHABET = string.ascii_lowercase + string.digits
@@ -36,53 +38,6 @@ _PASSWORD_TRANSITION_POLL_SEC = 0.1
 OTP_LENGTH = 6
 
 
-def load_sheet_cases(sheet: str, *, path: Path = DATA_XLSX) -> list[TestRow]:
-    """Load test rows for one sheet from the default or given Excel workbook.
-
-    Nạp các dòng test cho một sheet từ workbook Excel mặc định hoặc chỉ định.
-    """
-    workbook = load_excel(path)
-    cases = workbook.get(sheet)
-    if cases is None:
-        available = ", ".join(workbook) or "(none)"
-        raise ValueError(
-            f"Sheet {sheet!r} not found in {path.name}. "
-            f"Available sheets: {available}"
-        )
-    return cases
-
-
-def cell_input(value: object) -> str:
-    """Cell content as string; leading/trailing spaces are kept for form input.
-
-    Nội dung ô dưới dạng chuỗi; giữ nguyên khoảng trắng đầu/cuối khi nhập form.
-    """
-    if value is None:
-        return ""
-    if isinstance(value, float) and value.is_integer():
-        return str(int(value))
-    if isinstance(value, int):
-        return str(value)
-    return str(value)
-
-
-def cell_text(value: object) -> str:
-    """Trimmed cell text for messages, flags, and other non-input fields.
-
-    Văn bản ô đã cắt khoảng trắng, dùng cho thông báo, cờ và các trường không phải nhập liệu.
-    """
-    return cell_input(value).strip()
-
-
-def cell_value(value: object) -> str | None:
-    """Return cell text, or ``None`` when the cell is empty.
-
-    Trả về văn bản ô, hoặc ``None`` khi ô trống.
-    """
-    text = cell_input(value)
-    return text if text != "" else None
-
-
 def otp_is_complete(otp: str | None, *, length: int = OTP_LENGTH) -> bool:
     """Return whether ``otp`` has the full number of digits expected by Clerk.
 
@@ -91,21 +46,6 @@ def otp_is_complete(otp: str | None, *, length: int = OTP_LENGTH) -> bool:
     if not otp:
         return False
     return len(otp) >= length
-
-
-def excel_flag(case: TestRow, column: str) -> bool | None:
-    """Parse a 0/1 Excel flag column; ``None`` when the cell is empty.
-
-    Phân tích cột cờ 0/1 trong Excel; ``None`` khi ô trống.
-    """
-    value = case.get(column)
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, (int, float)):
-        return value != 0
-    return cell_text(value) not in ("0", "false", "no", "")
 
 
 def term_accepted(case: TestRow) -> bool:
@@ -186,25 +126,6 @@ def sign_up_assert_messages(case: TestRow) -> list[str]:
         return ["Please fill out this field", message]
 
     return messages
-
-
-def case_id(prefix: str, index: int, case: TestRow) -> str:
-    """Build a stable pytest parametrize id from prefix, row index, and message.
-
-    Tạo id pytest parametrize ổn định từ prefix, chỉ số dòng và message.
-    """
-    message = cell_text(case.get("message"))
-    if message:
-        return f"{prefix}-{index + 1}-{message[:40]}"
-    return f"{prefix}-{index + 1}-pass"
-
-
-def message_lower(case: TestRow) -> str:
-    """Return the row ``message`` column in lowercase.
-
-    Trả về cột ``message`` của dòng ở dạng chữ thường.
-    """
-    return cell_text(case.get("message")).lower()
 
 
 def sign_in_steps(case: TestRow) -> dict[str, bool]:
@@ -392,7 +313,7 @@ def wait_password_validation_transition(
     if not auth_case_involves_password_form(case):
         return
 
-    from helpers.validation import _auth_message_visible
+    from helpers.auth.validation import _auth_message_visible
 
     resolve_field = lambda: field_for_assertion(page, case)
     deadline = time.monotonic() + PASSWORD_VALIDATION_TRANSITION_SEC

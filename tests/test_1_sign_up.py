@@ -9,18 +9,15 @@ import pytest
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 
-from helpers.auth_excel import (
+from helpers.auth.excel import (
     assert_auth_outcome,
-    case_id,
-    cell_value,
-    load_sheet_cases,
-    message_lower,
     run_otp_step,
     sign_up_assert_messages,
     sign_up_email,
     sign_up_steps,
 )
-from helpers.load_excel import TestRow
+from helpers.excel.cells import case_id, cell_value, load_sheet_cases, message_lower
+from helpers.excel.load import TestRow
 from pages.sign_up import SignUpPage
 
 pytestmark = pytest.mark.sign_up

@@ -7,9 +7,9 @@ from __future__ import annotations
 
 import re
 
-from helpers.auth_excel import cell_text, message_lower
-from helpers.load_excel import TestRow
-from helpers.profile_excel import SECTION_FIELDS, fields_to_fill, section_name
+from helpers.excel.cells import cell_text, message_lower
+from helpers.excel.load import TestRow
+from helpers.profile.excel import SECTION_FIELDS, fields_to_fill, section_name
 from pages.user_profile import UserProfilePage
 
 _COMBOBOX_COLUMNS = frozenset({"country", "gender", "interest"})

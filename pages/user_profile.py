@@ -20,9 +20,9 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 
-from helpers.locators import wait_for_text
-from helpers.validation import _messages_match
-from helpers.waits import DEFAULT_TIMEOUT_SEC, wait_present
+from helpers.auth.validation import _messages_match
+from helpers.browser.locators import wait_for_text
+from helpers.browser.waits import DEFAULT_TIMEOUT_SEC, wait_present
 from pages.clerk_form import _SET_INPUT_VALUE_JS
 from pages.selectors.user_profile import (
     _ARIA_FIELDS,

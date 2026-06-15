@@ -14,6 +14,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 DEFAULT_TIMEOUT_SEC = 10.0
 
 _CLERK_READY = ("css selector", '[data-clerk-ready="true"]')
+_SOCKET_READY = ("css selector", 'body[data-socket-ready="true"]')
 
 
 def wait_visible(
@@ -48,6 +49,10 @@ def wait_hidden(
 
 def wait_for_clerk_ready(driver: WebDriver, timeout: float | None = None) -> None:
     wait_present(driver, _CLERK_READY, timeout)
+
+
+def wait_for_socket_ready(driver: WebDriver, timeout: float | None = None) -> None:
+    wait_present(driver, _SOCKET_READY, timeout)
 
 
 def left_auth_url(driver: WebDriver, auth_path: str) -> bool:

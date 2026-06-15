@@ -12,8 +12,8 @@ from collections.abc import Callable
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 
-from helpers.locators import by_role, first_visible_css
-from helpers.waits import (
+from helpers.browser.locators import by_role, first_visible_css
+from helpers.browser.waits import (
     DEFAULT_TIMEOUT_SEC,
     wait_for_clerk_ready,
     wait_hidden,

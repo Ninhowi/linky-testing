@@ -12,8 +12,8 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 
-from helpers.locators import by_role, first_visible_css
-from helpers.waits import DEFAULT_TIMEOUT_SEC, wait_hidden, wait_until_element_displayed
+from helpers.browser.locators import by_role, first_visible_css
+from helpers.browser.waits import DEFAULT_TIMEOUT_SEC, wait_hidden, wait_until_element_displayed
 from pages.clerk_form import (
     ClerkFormPage,
     _UI_SETTLE_SEC,

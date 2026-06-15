@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from helpers.auth_excel import cell_input, cell_value, message_lower
-from helpers.load_excel import TestRow
+from helpers.excel.cells import cell_input, cell_value, message_lower
+from helpers.excel.load import TestRow
 
 PROFILE_SECTIONS = frozenset({"profile-header", "bio", "personal", "interests"})
 

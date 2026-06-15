@@ -7,10 +7,10 @@ from __future__ import annotations
 
 import pytest
 
-from helpers.auth_excel import case_id, load_sheet_cases
-from helpers.load_excel import TestRow
-from helpers.profile_excel import fields_to_fill, section_name
-from helpers.profile_validation import (
+from helpers.excel.cells import case_id, load_sheet_cases
+from helpers.excel.load import TestRow
+from helpers.profile.excel import fields_to_fill, section_name
+from helpers.profile.validation import (
     assert_profile_field_error,
     assert_profile_outcome,
     profile_combobox_not_found_messages,

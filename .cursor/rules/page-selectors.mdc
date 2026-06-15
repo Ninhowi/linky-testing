@@ -1,0 +1,49 @@
+---
+description: Keep DOM/CSS selectors in pages/selectors/ by screen scope
+globs: pages/**/*.py
+alwaysApply: true
+---
+
+# Page selectors live in `pages/selectors/`
+
+All CSS selectors, XPath strings, locator tuples, and selector-builder functions belong in `pages/selectors/`, **not** in page object files.
+
+## File-per-scope layout
+
+| Screen / feature | Selector module |
+|------------------|-----------------|
+| Clerk auth, sign-in, sign-up, reset password | `pages/selectors/clerk.py` |
+| User profile | `pages/selectors/user_profile.py` |
+| Video chat | `pages/selectors/video_chat.py` |
+| New page | `pages/selectors/<page_name>.py` (match the page file name) |
+
+## When adding or changing selectors
+
+1. **Add or update** the constant/builder in the matching `pages/selectors/<scope>.py` file.
+2. **Import** it in the page object — do not hardcode selectors in `pages/*.py`.
+3. **New page?** Create `pages/selectors/<scope>.py` first, then import from the page file.
+
+Keep in page files: regex name patterns, JS snippets, timeouts, and business logic — not DOM selectors.
+
+## Examples
+
+```python
+# ❌ BAD — selector hardcoded in page object
+class ResetPasswordFormStep(ClerkFormPage):
+    _NEW_PASSWORD_FIELDS = 'input[name="password"], input#password-field'
+
+# ✅ GOOD — defined in pages/selectors/clerk.py, imported in page
+from pages.selectors.clerk import _NEW_PASSWORD_FIELDS, _NEW_PASSWORD_SCOPED
+```
+
+```python
+# ❌ BAD — inline CSS in find_elements
+self._driver.find_elements(By.CSS_SELECTOR, "[cmdk-empty]")
+
+# ✅ GOOD — constant in pages/selectors/user_profile.py
+from pages.selectors.user_profile import _COMBOBOX_EMPTY_SELECTORS
+for selector in _COMBOBOX_EMPTY_SELECTORS:
+    ...
+```
+
+Scoped Clerk inputs: define `_FIELDS` + `_SCOPED` via `scoped_css(_CLERK_SCOPE, ...)` in `pages/selectors/clerk.py`.

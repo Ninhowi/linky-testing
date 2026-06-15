@@ -25,7 +25,7 @@ This project is managed with [uv](https://docs.astral.sh/uv/). **Never** use bar
 uv sync
 uv run test tests/test_1_sign_up.py
 uv run pytest tests/ -k "signup" -v
-uv run python -c "from helpers.auth_excel import cell_value"
+uv run python -c "from helpers.excel.cells import cell_value"
 
 # ❌ BAD
 python -m pytest tests/

@@ -1,6 +1,6 @@
 # Linky Auth E2E (pytest + Selenium + CloakBrowser)
 
-Standalone Python E2E suite for Linky **sign-up**, **sign-in**, **reset-password**, and **user profile** flows. Test cases are driven by Excel rows in `test_data/data.xlsx`.
+Standalone Python E2E suite for Linky **sign-up**, **sign-in**, **reset-password**, **user profile**, and **`/call` video chat** flows. Auth and profile cases are driven by Excel rows in `test_data/data.xlsx`; call page tests are scenario-based.
 
 ## Prerequisites
 
@@ -8,6 +8,7 @@ Standalone Python E2E suite for Linky **sign-up**, **sign-in**, **reset-password
 - Python 3.14 (see `.python-version`)
 - [Allure CLI](https://allurereport.org/docs/install/) (optional, for HTML reports)
 - A running Linky app and `.env` with `BASE_TEST_URL`
+- For `/call` tests: Go API, Redis, Clerk test accounts, Cloudflare Realtime credentials, and fake media Chrome flags (configured in `tests/conftest.py`)
 
 ## Setup
 
@@ -29,8 +30,10 @@ uv run test tests/test_1_sign_up.py             # sign-up only
 uv run test tests/test_2_sign_in.py             # sign-in only
 uv run test tests/test_3_reset_password.py      # reset-password only
 uv run test tests/test_4_user_profile.py      # user profile only
+uv run test tests/test_5_call_page.py         # /call page (serial — do not use -n auto)
+uv run test tests/test_5_call_page.py -m call_smoke
 uv run test tests -m sign_in                    # by marker
-uv run test tests -n auto                       # parallel (xdist)
+uv run test tests -n auto                       # parallel (xdist; not for call tests)
 ```
 
 Run with a visible browser:
@@ -66,11 +69,14 @@ uv run allure-report open           # open generated report
 | `BASE_TEST_URL` | App under test (required; tests skip if unset) |
 | `HEADED` | `1` / `true` / `yes` for headed browser (default: headless) |
 | `IGNORE_HTTPS_ERRORS` | `1` / `true` / `yes` to pass `--ignore-certificate-errors` |
-| `USER_EMAIL` | Login email for profile tests |
-| `USER_PASSWORD` | Login password for profile tests |
+| `USER_EMAIL` | Login email for profile and call tests |
+| `USER_PASSWORD` | Login password for profile and call tests |
 | `USER_OTP` | OTP code when the test account uses 2FA |
+| `USER2_EMAIL` | Second Clerk account for two-user call integration tests |
+| `USER2_PASSWORD` | Password for `USER2_EMAIL` |
+| `USER2_OTP` | Optional OTP for `USER2_EMAIL` |
 
-Profile tests sign in through the Clerk UI **before each test case** using `USER_EMAIL`, `USER_PASSWORD`, and optional `USER_OTP`.
+Profile and call tests sign in through the Clerk UI using `USER_EMAIL` / `USER_PASSWORD` (and optional `USER_OTP`). Integration call tests also require `USER2_*` credentials for a second browser session.
 
 Variables are loaded from `.env` and optional `.env.e2e` at the project root. Existing process env vars are not overwritten.
 
@@ -84,6 +90,11 @@ File: `test_data/data.xlsx`
 | `login` | `tests/test_2_sign_in.py` |
 | `reset_password` | `tests/test_3_reset_password.py` |
 | `profile` | `tests/test_4_user_profile.py` |
+| `call_chat` | `tests/test_6_call_in_call_chat.py` |
+
+Call page tests in `tests/test_5_call_page.py` follow the Linky `docs/e2e/call-page.md` spec (smoke + integration core). They are **not** Excel-driven.
+
+In-call chat tests (`test_6`) use sheet **`call_chat`** when present; column reference: [`test_data/call_chat.md`](test_data/call_chat.md).
 
 Format per sheet:
 
@@ -96,8 +107,14 @@ Each row drives inputs through the Clerk auth UI and asserts the expected `messa
 
 ```
 linky-testing-final/
-  helpers/           # env, Excel loading, auth helpers, test runner, Allure
-  pages/             # page objects (sign-up, sign-in, reset-password, Clerk forms)
+  helpers/
+    auth/            # Clerk auth flows, session login, HTML5 validation
+    browser/         # Selenium locators, waits, viewport, E2E key injection
+    call/            # matched-call setup, in-call chat excel/flow/validation
+    excel/           # workbook loading, shared cell parsing
+    profile/         # profile sheet parsing and save assertions
+    runtime/         # env loading, test runner, Allure, CloakBrowser setup
+  pages/             # page objects (sign-up, sign-in, reset-password, video chat, Clerk forms)
   tests/             # parametrized pytest modules per auth flow
   test_data/
     data.xlsx        # case matrix

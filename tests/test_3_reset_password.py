@@ -8,13 +8,8 @@ from __future__ import annotations
 import pytest
 from selenium.webdriver.remote.webelement import WebElement
 
-from helpers.auth_excel import (
+from helpers.auth.excel import (
     assert_auth_outcome,
-    case_id,
-    cell_value,
-    excel_flag,
-    load_sheet_cases,
-    message_lower,
     reset_password_assert_messages,
     reset_password_should_submit,
     reset_password_steps,
@@ -22,7 +17,8 @@ from helpers.auth_excel import (
     run_otp_step,
     run_password_step,
 )
-from helpers.load_excel import TestRow
+from helpers.excel.cells import case_id, cell_value, excel_flag, load_sheet_cases, message_lower
+from helpers.excel.load import TestRow
 from pages.reset_password import ResetPasswordPage
 
 pytestmark = pytest.mark.reset_password

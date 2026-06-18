@@ -37,4 +37,5 @@ markers = [
   "call_smoke: single-profile /call smoke tests / test smoke một profile",
   "call_integration: two-profile /call integration tests / test integration hai profile",
   "call_in_call_chat: parametrized in-call chat tests (shared matched pair) / test chat in_call dùng chung một cặp ghép",
+  "performance: performance tests / kiểm thử hiệu năng",
 ]
